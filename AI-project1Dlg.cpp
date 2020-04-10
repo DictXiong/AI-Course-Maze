@@ -37,6 +37,7 @@ Maze* maze = nullptr;
 Agent* agent = nullptr;
 int algo=0;
 MapElem typeToSet = ROAD;
+CList<CRect, CRect> m_listRect;
 
 // X-length-col, Y-width-row, start from 0.
 int orgX=120, orgY=100, length=800, width=500, col=16, row=16;
@@ -196,6 +197,25 @@ BOOL CAIproject1Dlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	SetProcessDPIAware();
+	CRect rect;
+	GetWindowRect(&rect);
+	m_listRect.AddTail(rect);//对话框的区域
+	CWnd* pWnd = GetWindow(GW_CHILD);//获取子窗体
+	while (pWnd)
+	{
+		pWnd->GetWindowRect(rect);//子窗体的区域
+		m_listRect.AddTail(rect);           //CList<CRect,CRect> m_listRect成员变量
+		pWnd = pWnd->GetNextWindow();//取下一个子窗体
+	}
+
+
+	GetDlgItem(IDC_MAZE)->GetWindowRect(&rect);
+	ScreenToClient(&rect);
+	orgX = rect.left + 60;
+	orgY = rect.top + 50;
+	length = rect.Width() - 120;
+	width = rect.Height() - 80;
 
 	((CButton*)GetDlgItem(IDC_RADIO1))->SetCheck(true);
 	m_bar.Create(this);
@@ -216,7 +236,8 @@ BOOL CAIproject1Dlg::OnInitDialog()
 	blackBrush.CreateSolidBrush(RGB(0, 0, 0));
 	whitePen.CreatePen(0, 2, RGB(255, 255, 255));
 	bluePen.CreatePen(0, 1, colorBlue);
-
+	font.CreatePointFont(70, TEXT("Arial"));
+	bigFont.CreatePointFont(105, TEXT("Arial"));
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -382,22 +403,6 @@ void CAIproject1Dlg::drawDest(int row, int col)
 	dc.Rectangle(cRect);
 }
 
-
-//void CAIproject1Dlg::OnLButtonUp(UINT nFlags, CPoint point)
-//{
-//
-//	CDialogEx::OnLButtonUp(nFlags, point);
-//}
-
-
-//void CAIproject1Dlg::OnRButtonUp(UINT nFlags, CPoint point)
-//{
-//
-//	
-//	CDialogEx::OnRButtonUp(nFlags, point);
-//}
-
-
 void CAIproject1Dlg::OnBnClickedButtonDisplay()
 {
 	showResult = !showResult;
@@ -430,6 +435,7 @@ void CAIproject1Dlg::OnBnClickedButtonDefault()
 {
 	initMaze();
 	agent->setMaze(maze);
+	agent->clearResult();
 	draw();
 	setStatus(READY);
 }
@@ -452,12 +458,16 @@ void CAIproject1Dlg::drawCellResult(int r, int c, bool localRedraw, Direction d)
 	dc.SetBkMode(TRANSPARENT);
 	dc.SelectObject(bluePen);
 	dc.SelectObject(nullBrush);
+	dc.SelectObject(font);
 
 	CString s;
 	auto tmp = maze->getPoint(r, c);
 	s.Format(L"%.2f", tmp.value + tmp.reward);
 	auto rect = getRect(make_pair(r, c));
 	dc.Rectangle(&rect);
+
+	if (d != null) drawDirection(r, c, d);
+
 	rect.left++;
 	rect.right--;
 	rect.top++;
@@ -466,7 +476,7 @@ void CAIproject1Dlg::drawCellResult(int r, int c, bool localRedraw, Direction d)
 	{
 		dc.DrawText(s, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 	}
-	if (d != null) drawDirection(r, c, d);
+	
 }
 
 
@@ -684,16 +694,17 @@ void CAIproject1Dlg::OnRButtonDown(UINT nFlags, CPoint point)
 void CAIproject1Dlg::drawDirection(int r, int c, Direction d)
 {
 	CClientDC dc(this);
-	dc.SetTextColor(RGB(87, 116, 48));
+	dc.SetTextColor(RGB(242, 71, 30));
 	dc.SetBkMode(TRANSPARENT);
+	dc.SelectObject(bigFont);
 
 	CString s;
 
 	auto rect = getRect(make_pair(r, c));
-	rect.left-=2;
-	rect.right+=2;
-	rect.top-=2;
-	rect.bottom+=2;
+	//rect.left-=2;
+	//rect.right+=2;
+	//rect.top-=2;
+	//rect.bottom+=2;
 
 	switch (d)
 	{
@@ -718,6 +729,49 @@ void CAIproject1Dlg::OnSize(UINT nType, int cx, int cy)
 		RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, IDS_BAR_STEP);
 	}
 	
+	if (m_listRect.GetCount() > 0)
+	{
+		CRect dlgNow;
+		GetWindowRect(&dlgNow);
+		POSITION pos = m_listRect.GetHeadPosition();//第一个保存的是对话框的Rect
+		CRect dlgSaved;
+		dlgSaved = m_listRect.GetNext(pos);
+		ScreenToClient(dlgNow);
+		double x = dlgNow.Width() * 1.0 / dlgSaved.Width();//根据当前和之前保存的对话框的宽高求比例
+		double y = dlgNow.Height() * 1.0 / dlgSaved.Height();
+		ClientToScreen(dlgNow);
+		CRect childSaved;
+		CWnd* pWnd = GetWindow(GW_CHILD);
+		while (pWnd)
+		{
+			if (pos == nullptr) break;
+			childSaved = m_listRect.GetNext(pos);//依次获取子窗体的Rect
+			childSaved.left = (LONG)(dlgNow.left + (childSaved.left - dlgSaved.left) * x);//根据比例调整控件上下左右距离对话框的距离
+			childSaved.right = (LONG)(dlgNow.right + (childSaved.right - dlgSaved.right) * x);
+			childSaved.top = (LONG)(dlgNow.top + (childSaved.top - dlgSaved.top) * y);
+			childSaved.bottom = (LONG)(dlgNow.bottom + (childSaved.bottom - dlgSaved.bottom) * y);
+			ScreenToClient(childSaved);
+			pWnd->MoveWindow(childSaved);
+			CRect rect;/*
+			if (IDC_STATIC_KEY == pWnd->GetDlgCtrlID())
+			{
+				rect.top = 0;
+				rect.bottom = childSaved.bottom - childSaved.top;
+				rect.left = 0;
+				rect.right = childSaved.right - childSaved.left;
+				m_flueDlg.MoveWindow(&rect);
+				m_flueDlg.ShowWindow(SW_SHOW);
+			}*/
+			pWnd = pWnd->GetNextWindow();
+		}
+		CRect rect;
+		GetDlgItem(IDC_MAZE)->GetWindowRect(&rect);
+		ScreenToClient(&rect);
+		orgX = rect.left + 60;
+		orgY = rect.top + 50;
+		length = rect.Width() - 120;
+		width = rect.Height() - 80;
+	}
 }
 
 

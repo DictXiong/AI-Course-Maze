@@ -313,7 +313,7 @@ public:
 					while (r < row) 
 					{
 						if (c < col) {
-							if (isFixedPoint(_m->getPoint(r, c).type)) {
+							if (!isFixedPoint(_m->getPoint(r, c).type)) {
 								decision[r][c] = (this->*iterfunc)(r, c);
 							}
 						}
@@ -333,7 +333,7 @@ public:
 					while (r < row)
 					{
 						if (c < col) {
-							if (isFixedPoint(_m->getPoint(r, c).type)) {
+							if (!isFixedPoint(_m->getPoint(r, c).type)) {
 								decision[r][c] = (this->*iterfunc)(r, c);
 							}
 						}

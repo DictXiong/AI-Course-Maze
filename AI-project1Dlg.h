@@ -46,8 +46,6 @@ public:
 	void drawLucky(int row, int col);
 	void drawDest(int row, int col);
 	CPen whitePen;
-//	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-//	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
     afx_msg void OnBnClickedButtonDisplay();
     CBrush* nullBrush;
 	void drawResult();
@@ -71,4 +69,6 @@ public:
 	CStatusBar m_bar;
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	void setStatus(Status s);
+    CFont font;
+	CFont bigFont;
 };

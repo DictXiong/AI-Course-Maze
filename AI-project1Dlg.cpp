@@ -70,6 +70,7 @@ void initMaze()
 	{
 		delete maze;
 	}
+	row = col = 16;
 		maze = new Maze(row, col);
 		vector<pair<int, int> > walls = { make_pair(0,2), make_pair(1,2), make_pair(2,2), make_pair(2,6), make_pair(2,8), make_pair(3,2),
 make_pair(3,3), make_pair(3,4), make_pair(3,5), make_pair(3,6), make_pair(3,8), make_pair(3,9), make_pair(3,10),
@@ -594,7 +595,7 @@ void CAIproject1Dlg::OnBnClickedButtonChange()
 	{
 		int r = _ttoi(dlg.v_row);
 		int c = _ttoi(dlg.v_col);
-		if (row != r && col != c)
+		if (row != r || col != c)
 		{
 			row = r, col = c;
 			auto oldMaze = maze;

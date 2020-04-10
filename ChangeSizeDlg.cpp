@@ -42,9 +42,9 @@ END_MESSAGE_MAP()
 void ChangeSizeDlg::OnBnClickedOk()
 {
 	UpdateData(true);
-	if (_ttoi(v_col) > 100 || _ttoi(v_row) > 100 || _ttoi(v_col) < 0 || _ttoi(v_row) < 0)
+	if (_ttoi(v_col) > 100 || _ttoi(v_row) > 100 || _ttoi(v_col) <= 0 || _ttoi(v_row) <= 0)
 	{
-		AfxMessageBox(L"输入的值不正确. \n行和列的合法范围是 [0,100].");
+		AfxMessageBox(L"输入的值不正确. \n行和列的合法范围是 [1,100].");
 	}
 	else CDialogEx::OnOK();
 }

@@ -23,9 +23,14 @@ typedef std::pair<int, int> dint;
 const double PI = 3.14159265358979;
 
 
-enum Status{
+enum Status {
 	READY, RUNNING, RUNNED
-} status;
+};
+Status status = READY;
+
+static UINT INDICATORS[] = { IDS_BAR_STATUS, IDS_BAR_STEP };
+
+
 bool showResult = false;
 
 Maze* maze = nullptr;
@@ -155,6 +160,7 @@ BEGIN_MESSAGE_MAP(CAIproject1Dlg, CDialogEx)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_RBUTTONDOWN()
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -192,6 +198,12 @@ BOOL CAIproject1Dlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 
 	((CButton*)GetDlgItem(IDC_RADIO1))->SetCheck(true);
+	m_bar.Create(this);
+	m_bar.SetIndicators(INDICATORS, 2);
+	m_bar.SetPaneInfo(0, IDS_BAR_STATUS, SBPS_NORMAL, 150);
+	m_bar.SetPaneInfo(1, IDS_BAR_STEP, SBPS_STRETCH, 0);
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, IDS_BAR_STEP);
+
 	initMaze();
 	agent = new Agent(maze, algo);
 
@@ -306,8 +318,10 @@ void CAIproject1Dlg::drawMaze()
 void CAIproject1Dlg::OnBnClickedButtonReset()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	agent->clearResult();
 	maze->clearEst();
 	draw();
+	setStatus(READY);
 }
 
 
@@ -394,13 +408,20 @@ void CAIproject1Dlg::OnBnClickedButtonDisplay()
 void CAIproject1Dlg::drawResult()
 {
 	drawMaze();
+
 	auto row = maze->getRow(), col = maze->getCol();
 	for (int i = 0; i != row; i++)
 	{
 		for (int j = 0; j != col; j++)
 		{
-			drawCellResult(i, j);
+			drawCellResult(i, j, false);
 		}
+	}
+
+	auto result = agent->getResult();
+	for (auto i : result)
+	{
+		drawDirection(i.first.first, i.first.second, i.second);
 	}
 }
 
@@ -409,6 +430,7 @@ void CAIproject1Dlg::OnBnClickedButtonDefault()
 {
 	initMaze();
 	draw();
+	setStatus(READY);
 }
 
 
@@ -420,9 +442,9 @@ void CAIproject1Dlg::draw()
 }
 
 
-void CAIproject1Dlg::drawCellResult(int r, int c)
+void CAIproject1Dlg::drawCellResult(int r, int c, bool localRedraw, Direction d)
 {
-	drawCell(r, c);
+	if (localRedraw) drawCell(r, c);
 
 	CClientDC dc(this);
 	dc.SetTextColor(colorBlue);
@@ -443,6 +465,7 @@ void CAIproject1Dlg::drawCellResult(int r, int c)
 	{
 		dc.DrawText(s, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 	}
+	if (d != null) drawDirection(r, c, d);
 }
 
 
@@ -480,9 +503,11 @@ void CAIproject1Dlg::drawCell(int r, int c)
 
 void CAIproject1Dlg::OnBnClickedButtonAutorun()
 {
+	setStatus(RUNNING);
 	agent->iteration(15,true);
 	showResult = true;
 	draw();
+	setStatus(RUNNED);
 }
 
 
@@ -490,14 +515,20 @@ void CAIproject1Dlg::OnBnClickedRadio(UINT uID)
 {
 	algo = uID - IDC_RADIO1;
 	agent->setAlgo(algo);
-	maze->clearEst();
-	draw();
+	if (status == RUNNED)
+	{
+		agent->clearResult();
+		maze->clearEst();
+		draw();
+	}
+	setStatus(READY);
 }
 
 
 void CAIproject1Dlg::OnBnClickedButtonSeq(UINT uID)
 {
 	unsigned times;
+	setStatus(RUNNING);
 	switch (uID)
 	{
 	case IDC_BUTTON_SEQ1: times = 1; break;
@@ -508,12 +539,14 @@ void CAIproject1Dlg::OnBnClickedButtonSeq(UINT uID)
 	agent->iteration(times, false);
 	showResult = true;
 	draw();
+	setStatus(RUNNED);
 }
 
 
 void CAIproject1Dlg::OnBnClickedButtonRev(UINT uID)
 {
 	unsigned times;
+	setStatus(RUNNING);
 	switch (uID)
 	{
 	case IDC_BUTTON_REV1: times = 1; break;
@@ -524,6 +557,7 @@ void CAIproject1Dlg::OnBnClickedButtonRev(UINT uID)
 	agent->iteration(times, true);
 	showResult = true;
 	draw();
+	setStatus(RUNNED);
 }
 
 
@@ -557,6 +591,7 @@ void CAIproject1Dlg::OnBnClickedButtonChange()
 			agent->setMaze(maze);
 			delete oldMaze;
 			draw();
+			setStatus(READY);
 		}
 	}
 }
@@ -575,6 +610,13 @@ void CAIproject1Dlg::OnLButtonDown(UINT nFlags, CPoint point)
 		else if (grid.first == 0 && grid.second == 0)
 		{
 			AfxMessageBox(L"不可以改变起点的类型!"); return;
+		}
+		if (status == RUNNED)
+		{
+			maze->clearEst();
+			agent->clearResult();
+			setStatus(READY);
+			draw();
 		}
 		auto oldPoint = maze->getPoint(grid);
 		if (oldPoint.type == ROAD) typeToSet=WALL;
@@ -618,13 +660,83 @@ void CAIproject1Dlg::OnRButtonDown(UINT nFlags, CPoint point)
 		{
 			AfxMessageBox(L"不可以改变起点的类型!"); return;
 		}
+		if (status == RUNNED)
+		{
+			maze->clearEst();
+			agent->clearResult();
+			setStatus(READY);
+			draw();
+		}
 		auto oldPoint = maze->getPoint(grid);
 		if (oldPoint.type == ROAD) typeToSet=TRAP;
 		else if (oldPoint.type == TRAP) typeToSet=LUCKY;
 		else typeToSet=ROAD;
 		maze->setCell(grid.first, grid.second, typeToSet);
 		redraw(grid.first, grid.second);
+		
 	}
 
 	CDialogEx::OnRButtonDown(nFlags, point);
+}
+
+
+void CAIproject1Dlg::drawDirection(int r, int c, Direction d)
+{
+	CClientDC dc(this);
+	dc.SetTextColor(RGB(87, 116, 48));
+	dc.SetBkMode(TRANSPARENT);
+
+	CString s;
+
+	auto rect = getRect(make_pair(r, c));
+	rect.left--;
+	rect.right++;
+	rect.top--;
+	rect.bottom++;
+
+	switch (d)
+	{
+	case UP: dc.DrawText(L"↑", &rect, DT_LEFT | DT_TOP | DT_SINGLELINE); break;
+	case RIGHT: dc.DrawText(L"→", &rect, DT_RIGHT | DT_BOTTOM | DT_SINGLELINE); break;
+	case DOWN: dc.DrawText(L"↓", &rect, DT_RIGHT | DT_BOTTOM | DT_SINGLELINE); break;
+	case LEFT: dc.DrawText(L"←", &rect, DT_LEFT | DT_TOP | DT_SINGLELINE); break;
+	default: throw(-1);
+	}
+}
+
+
+void CAIproject1Dlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogEx::OnSize(nType, cx, cy);
+
+	// TODO: 在此处添加消息处理程序代码
+	if (m_bar.GetCount() != 0)
+	{
+		m_bar.SetPaneInfo(0, IDS_BAR_STATUS, SBPS_NORMAL, 150);
+		m_bar.SetPaneInfo(1, IDS_BAR_STEP, SBPS_STRETCH, 0);
+		RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, IDS_BAR_STEP);
+	}
+	
+}
+
+
+void CAIproject1Dlg::setStatus(Status s)
+{
+	status = s;
+	CString str;
+	auto tmp = agent->getCount();
+	str.Format(L"已正向迭代%d次, 反向迭代%d次, 共%d次", tmp.first, tmp.second, tmp.first + tmp.second);
+	m_bar.SetPaneText(1, str);
+	if (s == READY)
+	{
+		m_bar.SetPaneText(0, L"Ready");
+	}
+	else if (s == RUNNED)
+	{
+		m_bar.SetPaneText(0, L"Runned");
+	}
+	else if (s == RUNNING)
+	{
+		m_bar.SetPaneText(0, L"Running");
+	}
 }

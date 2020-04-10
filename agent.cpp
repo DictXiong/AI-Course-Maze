@@ -1,4 +1,5 @@
 //#include "pch.h"
+#pragma once
 #include "maze.cpp"
 
 
@@ -46,6 +47,7 @@ private:
 	Maze* _m = nullptr;
 	Direction** decision;
 	Direction(Agent::* iterfunc)(int, int);
+	unsigned _cSeq = 0, _cRev = 0;
 	//选择一个方向后, 直走/左前方/右前方的概率
 public:
 	Agent(Maze *maze, int algo = 0)
@@ -137,7 +139,7 @@ public:
 				continue;
 			}
 			auto succ = getSuccessor(r, c, Direction(i));
-			if (succ.empty()) return Direction(0); // watchout! this line must be added into other algorithms 
+			if (succ.empty()) return null; // watchout! this line must be added into other algorithms 
 			double value = 0;
 			pay[i / 2] = 0;
 			for (auto j : succ) {
@@ -301,6 +303,7 @@ public:
 		for (unsigned i = 0; i != times; i++)
 			if (reverse_iter) 
 			{
+				_cRev++;
 				for (int s = row + col - 2; s >= 0; s--) 
 				{
 					r = 0;
@@ -317,6 +320,7 @@ public:
 			}
 			else 
 			{
+				_cSeq++;
 				for (int s = 0; s < row + col - 1; s++) 
 				{
 					r = 0;
@@ -338,6 +342,7 @@ public:
 		int col = _m->getCol();
 		vector< pair<pair<int, int>, Direction> > ans;
 		int i = 0, x = 0, y = 0;
+		if (decision[x][y] == null) return ans;
 		while ((x < row - 1) || (y < col - 1))
 		{
 			ans.push_back(make_pair(make_pair(x, y), decision[x][y]));
@@ -347,6 +352,7 @@ public:
 			case RIGHT: y++; break;
 			case UP: x--; break;
 			case DOWN: x++; break;
+			case null: throw(-1);
 			}
 			i++;
 			if (i > row * col) {
@@ -354,6 +360,16 @@ public:
 			}
 		}
 		return ans;
+	}
+
+	void clearResult()
+	{
+		int r = _m->getRow();
+		int c = _m->getCol();
+		for (int i = 0; i != r; i++)
+			for (int j = 0; j != c; j++)
+				decision[i][j] = null;
+		_cSeq = _cRev = 0;
 	}
 
 	void printRoute() {
@@ -398,5 +414,10 @@ public:
 			}
 			printf("\n\n");
 		}
+	}
+
+	pair<int, int> getCount()
+	{
+		return make_pair(_cSeq, _cRev);
 	}
 };

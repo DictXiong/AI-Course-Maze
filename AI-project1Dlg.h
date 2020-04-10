@@ -3,6 +3,9 @@
 //
 
 #pragma once
+#include "agent.cpp"
+
+enum Status;
 
 // CAIproject1Dlg 对话框
 class CAIproject1Dlg : public CDialogEx
@@ -52,7 +55,7 @@ public:
 	void draw();
 	CPen bluePen;
 	COLORREF colorBlue;
-	void drawCellResult(int row, int col);
+	void drawCellResult(int row, int col, bool localRedraw=true, Direction d = null);
 	void redraw(int row, int col);
 	void drawCell(int row, int col);
 	afx_msg void OnBnClickedButtonAutorun();
@@ -64,4 +67,8 @@ public:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+    void drawDirection(int r, int c, Direction d);
+	CStatusBar m_bar;
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	void setStatus(Status s);
 };

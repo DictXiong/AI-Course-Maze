@@ -6,6 +6,8 @@
 #define IDD_ABOUTBOX                    100
 #define IDS_ABOUTBOX                    101
 #define IDD_AIPROJECT1_DIALOG           102
+#define IDS_BAR_STATUS                  102
+#define IDS_BAR_STEP                    103
 #define IDR_MAINFRAME                   128
 #define IDD_DIALOG1                     130
 #define IDC_BUTTON_SEQ1                 1000

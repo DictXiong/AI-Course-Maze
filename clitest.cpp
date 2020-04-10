@@ -35,7 +35,7 @@ int main()
 	//maze.print();
 	Agent Robot(&maze,0);
 	for (int i = 1; i <= times; i++) {
-		Robot.iteration(true);
+		Robot.iteration(1,true);
 		if (i % 5) {
 			continue;
 		}

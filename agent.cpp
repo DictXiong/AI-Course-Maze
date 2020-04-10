@@ -383,7 +383,7 @@ public:
 				whole[i][j] = 0;
 				auto tmp = _m->getPoint(i, j);
 				if (tmp.type == WALL) whole[i][j] = 'H';
-				else if (tmp.type == TRAP) whole[i][j] == '#';
+				else if (tmp.type == TRAP) whole[i][j] = '#';
 			}
 		}
 		whole[row - 1][col - 1] = '$';

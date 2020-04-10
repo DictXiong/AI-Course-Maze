@@ -429,6 +429,7 @@ void CAIproject1Dlg::drawResult()
 void CAIproject1Dlg::OnBnClickedButtonDefault()
 {
 	initMaze();
+	agent->setMaze(maze);
 	draw();
 	setStatus(READY);
 }
@@ -689,10 +690,10 @@ void CAIproject1Dlg::drawDirection(int r, int c, Direction d)
 	CString s;
 
 	auto rect = getRect(make_pair(r, c));
-	rect.left--;
-	rect.right++;
-	rect.top--;
-	rect.bottom++;
+	rect.left-=2;
+	rect.right+=2;
+	rect.top-=2;
+	rect.bottom+=2;
 
 	switch (d)
 	{

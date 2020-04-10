@@ -265,7 +265,9 @@ public:
 		Direction direction = null;
 		double estpay = -INF;
 		vector<Direction> directions;
+		pair<int, int>cur_pos = make_pair(r, c);
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
+			auto nextpos = getAimPos(cur_pos, Direction(2 * i));
 			if (_m->lawful(nextpos)) {
 				nextpos = getAimPos(nextpos, decision[nextpos.first][nextpos.second]);
 				if (nextpos != cur_pos) {
@@ -311,7 +313,7 @@ public:
 					while (r < row) 
 					{
 						if (c < col) {
-							if (isFixedPoint(_m.getPoint(r, c))) {
+							if (isFixedPoint(_m->getPoint(r, c).type)) {
 								decision[r][c] = (this->*iterfunc)(r, c);
 							}
 						}
@@ -331,7 +333,7 @@ public:
 					while (r < row)
 					{
 						if (c < col) {
-							if (isFixedPoint(_m.getPoint(r, c))) {
+							if (isFixedPoint(_m->getPoint(r, c).type)) {
 								decision[r][c] = (this->*iterfunc)(r, c);
 							}
 						}

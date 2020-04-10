@@ -185,6 +185,7 @@
   <ItemGroup>
     <ClInclude Include="AI-project1.h" />
     <ClInclude Include="AI-project1Dlg.h" />
+    <ClInclude Include="ChangeSizeDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
@@ -194,6 +195,7 @@
     <ClCompile Include="agent.cpp" />
     <ClCompile Include="AI-project1.cpp" />
     <ClCompile Include="AI-project1Dlg.cpp" />
+    <ClCompile Include="ChangeSizeDlg.cpp" />
     <ClCompile Include="maze.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

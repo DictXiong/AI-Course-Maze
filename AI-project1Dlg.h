@@ -43,8 +43,8 @@ public:
 	void drawLucky(int row, int col);
 	void drawDest(int row, int col);
 	CPen whitePen;
-	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
+//	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+//	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
     afx_msg void OnBnClickedButtonDisplay();
     CBrush* nullBrush;
 	void drawResult();
@@ -55,4 +55,13 @@ public:
 	void drawCellResult(int row, int col);
 	void redraw(int row, int col);
 	void drawCell(int row, int col);
+	afx_msg void OnBnClickedButtonAutorun();
+	afx_msg void OnBnClickedRadio(UINT uID);
+	afx_msg void OnBnClickedButtonSeq(UINT uID);
+	afx_msg void OnBnClickedButtonRev(UINT uID);
+	void drawOrigin(int row, int col);
+	afx_msg void OnBnClickedButtonChange();
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 };

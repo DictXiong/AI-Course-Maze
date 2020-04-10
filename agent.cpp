@@ -50,7 +50,7 @@ private:
 public:
 	Agent(Maze *maze, int algo = 0)
 	{
-		setMaze(maze);
+		setMaze(maze); 
 		setAlgo(algo);
 	}
 	~Agent() {
@@ -58,7 +58,6 @@ public:
 			delete[] decision[i];
 		}
 		delete[] decision;
-		delete _m;
 	}
 
 	void setMaze(Maze* maze)
@@ -69,9 +68,8 @@ public:
 				delete[] decision[i];
 			}
 			delete[] decision;
-
-			delete _m;
 		}
+
 		_m = maze;
 		int r = _m->getRow(), c = _m->getCol();
 		decision = new Direction * [r];
@@ -294,43 +292,45 @@ public:
 			}
 		}
 	}
-	void iteration(bool reverse_iter = false) {
+	void iteration(unsigned times, bool reverse_iter = false) 
+	{
 		int row = _m->getRow();
 		int col = _m->getCol();
 		int r = 0;
 		int c = 0;
-		if (reverse_iter) {
-			for (int s = row + col - 2; s >= 0; s--) {
-				r = 0;
-				c = s - r;
-				while (r < row) {
-					if (_m->lawful(r, c)) {
-						decision[r][c] = (this->*iterfunc)(r, c);
-					}
-					r++;
-					c--;
-					if (c < 0) {
-						break;
-					}
-				}
-			}
-		}
-		else {
-			for (int s = 0; s < row + col - 1; s++) {
-				r = 0;
-				c = s - r;
-				while (r < row) {
-					if (c < col) {
-						decision[r][c] = (this->*iterfunc)(r, c);
-					}
-					r++;
-					c--;
-					if (c < 0) {
-						break;
+		for (unsigned i = 0; i != times; i++)
+			if (reverse_iter) 
+			{
+				for (int s = row + col - 2; s >= 0; s--) 
+				{
+					r = 0;
+					c = s - r;
+					while (r < row) 
+					{
+						if (_m->lawful(r, c)) 
+							decision[r][c] = (this->*iterfunc)(r, c);
+						r++;
+						c--;
+						if (c < 0) break;
 					}
 				}
 			}
-		}
+			else 
+			{
+				for (int s = 0; s < row + col - 1; s++) 
+				{
+					r = 0;
+					c = s - r;
+					while (r < row)
+					{
+						if (c < col) 
+							decision[r][c] = (this->*iterfunc)(r, c);
+						r++;
+						c--;
+						if (c < 0) break;
+					}
+				}
+			}
 	}
 	vector< pair<pair<int, int>, Direction> >   getResult()
 	{
@@ -356,9 +356,6 @@ public:
 		return ans;
 	}
 
-	void print() {
-		_m->print();
-	}
 	void printRoute() {
 		int row = _m->getRow();
 		int col = _m->getCol();

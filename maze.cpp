@@ -63,6 +63,7 @@ public:
 		for (int i = 0; i < row; i++) {
 			_d[i] = new MazeElem[col];
 		}
+		setLucky(r - 1, c - 1);
 	}
 	~Maze()
 	{
@@ -85,6 +86,17 @@ public:
 	}
 
 	//用于设置迷宫点为特殊点
+	
+	void setCell(int r, int c, MapElem m)
+	{
+		switch (m)
+		{
+		case WALL: setWall(r, c); break;
+		case ROAD: setRoad(r, c); break;
+		case TRAP: setTrap(r, c); break;
+		case LUCKY: setLucky(r, c); break;
+		}
+	}
 
 	void setWall(int r, int c)
 	{

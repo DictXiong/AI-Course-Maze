@@ -8,6 +8,8 @@
 #include "AI-project1Dlg.h"
 #include "afxdialogex.h"
 #include "maze.cpp"
+#include "agent.cpp"
+#include "ChangeSizeDlg.h"
 #include<utility>
 
 typedef std::pair<int, int> dint;
@@ -26,7 +28,10 @@ enum Status{
 } status;
 bool showResult = false;
 
-Maze *maze;
+Maze* maze = nullptr;
+Agent* agent = nullptr;
+int algo=0;
+MapElem typeToSet = ROAD;
 
 // X-length-col, Y-width-row, start from 0.
 int orgX=120, orgY=100, length=800, width=500, col=16, row=16;
@@ -40,16 +45,16 @@ RECT Rect: based on POINT
 
 dint getGrid(dint point)
 {
-	return std::make_pair(int((point.first - orgX) / (length * 1.0 / col)), int((point.second - orgY) / (width * 1.0 / row)));
+	return std::make_pair(int((point.second - orgY) / (width * 1.0 / row)), int((point.first - orgX) / (length * 1.0 / col)));
 }
 
 RECT getRect(dint grid)
 {
 	RECT ans;
-	ans.top = orgY + width * 1.0 / row * grid.second;
-	ans.bottom = orgY + width * 1.0 / row * (grid.second + 1);
-	ans.left = orgX + length * 1.0 / col * grid.first;
-	ans.right = orgX + length * 1.0 / col * (grid.first + 1);
+	ans.top = orgY + width * 1.0 / row * grid.first;
+	ans.bottom = orgY + width * 1.0 / row * (grid.first + 1);
+	ans.left = orgX + length * 1.0 / col * grid.second;
+	ans.right = orgX + length * 1.0 / col * (grid.second + 1);
 	return ans;
 }
 
@@ -60,7 +65,7 @@ void initMaze()
 		delete maze;
 	}
 		maze = new Maze(row, col);
-		vector<pair<int, int> > walls = { make_pair(0,0), make_pair(1,2), make_pair(2,2), make_pair(2,6), make_pair(2,8), make_pair(3,2),
+		vector<pair<int, int> > walls = { make_pair(0,2), make_pair(1,2), make_pair(2,2), make_pair(2,6), make_pair(2,8), make_pair(3,2),
 make_pair(3,3), make_pair(3,4), make_pair(3,5), make_pair(3,6), make_pair(3,8), make_pair(3,9), make_pair(3,10),
 make_pair(3,11), make_pair(3,12), make_pair(3,13), make_pair(3,14), make_pair(4,14), make_pair(5,2), make_pair(5,3),
 make_pair(5,4), make_pair(5,5), make_pair(5,6), make_pair(5,7), make_pair(5,8), make_pair(5,11), make_pair(5,12), make_pair(5,14),
@@ -138,10 +143,18 @@ BEGIN_MESSAGE_MAP(CAIproject1Dlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON_RESET, &CAIproject1Dlg::OnBnClickedButtonReset)
-	ON_WM_LBUTTONUP()
-	ON_WM_RBUTTONUP()
+//	ON_WM_LBUTTONUP()
+//	ON_WM_RBUTTONUP()
     ON_BN_CLICKED(IDC_BUTTON_DISPLAY, &CAIproject1Dlg::OnBnClickedButtonDisplay)
 	ON_BN_CLICKED(IDC_BUTTON_DEFAULT, &CAIproject1Dlg::OnBnClickedButtonDefault)
+	ON_BN_CLICKED(IDC_BUTTON_AUTORUN, &CAIproject1Dlg::OnBnClickedButtonAutorun)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO3, &CAIproject1Dlg::OnBnClickedRadio)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_BUTTON_SEQ1, IDC_BUTTON_SEQ50, &CAIproject1Dlg::OnBnClickedButtonSeq)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_BUTTON_REV1, IDC_BUTTON_REV50, &CAIproject1Dlg::OnBnClickedButtonRev)
+	ON_BN_CLICKED(IDC_BUTTON_CHANGE, &CAIproject1Dlg::OnBnClickedButtonChange)
+	ON_WM_LBUTTONDOWN()
+	ON_WM_MOUSEMOVE()
+	ON_WM_RBUTTONDOWN()
 END_MESSAGE_MAP()
 
 
@@ -178,6 +191,10 @@ BOOL CAIproject1Dlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 
+	((CButton*)GetDlgItem(IDC_RADIO1))->SetCheck(true);
+	initMaze();
+	agent = new Agent(maze, algo);
+
 	colorBlue = RGB(0, 122, 204);
 
 	nullPen = CPen::FromHandle((HPEN)GetStockObject(NULL_PEN));
@@ -186,7 +203,6 @@ BOOL CAIproject1Dlg::OnInitDialog()
 	blackPen.CreatePen(0, 2, RGB(0, 0, 0));
 	blackBrush.CreateSolidBrush(RGB(0, 0, 0));
 	whitePen.CreatePen(0, 2, RGB(255, 255, 255));
-	OnBnClickedButtonDefault();
 	bluePen.CreatePen(0, 1, colorBlue);
 
 
@@ -228,10 +244,12 @@ void CAIproject1Dlg::OnPaint()
 
 		// 绘制图标
 		dc.DrawIcon(x, y, m_hIcon);
+		
 	}
 	else
 	{
 		CDialogEx::OnPaint();
+		draw();
 	}
 }
 
@@ -339,7 +357,6 @@ void CAIproject1Dlg::drawLucky(int row, int col)
 
 void CAIproject1Dlg::drawDest(int row, int col)
 {
-	// TODO: 在此处添加实现代码.
 	CClientDC dc(this);
 	CBrush cBrush;
 	CRect cRect = getRect(make_pair(row, col));
@@ -352,42 +369,19 @@ void CAIproject1Dlg::drawDest(int row, int col)
 }
 
 
-void CAIproject1Dlg::OnLButtonUp(UINT nFlags, CPoint point)
-{
-	if (point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
-	{
-		auto grid = getGrid(make_pair(point.x,point.y));
-		if (grid.first == row - 1 && grid.second == col - 1)
-		{
-			AfxMessageBox(L"不可以改变终点的类型!");
-		}
-		auto oldPoint=maze->getPoint(grid);
-		if (oldPoint.type == WALL) maze->setRoad(grid.first, grid.second);
-		else maze->setWall(grid.first, grid.second);
-		redraw(grid.first, grid.second);
-	}
-	CDialogEx::OnLButtonUp(nFlags, point);
-}
+//void CAIproject1Dlg::OnLButtonUp(UINT nFlags, CPoint point)
+//{
+//
+//	CDialogEx::OnLButtonUp(nFlags, point);
+//}
 
 
-void CAIproject1Dlg::OnRButtonUp(UINT nFlags, CPoint point)
-{
-	if (point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
-	{
-		auto grid = getGrid(make_pair(point.x, point.y));
-		if (grid.first == row - 1 && grid.second == col - 1)
-		{
-			AfxMessageBox(L"不可以改变终点的类型!");
-		}
-		auto oldPoint = maze->getPoint(grid);
-		if (oldPoint.type == ROAD) maze->setTrap(grid.first, grid.second);
-		else if (oldPoint.type == TRAP) maze->setLucky(grid.first, grid.second);
-		else maze->setRoad(grid.first, grid.second);
-		redraw(grid.first, grid.second);
-	}
-	
-	CDialogEx::OnRButtonUp(nFlags, point);
-}
+//void CAIproject1Dlg::OnRButtonUp(UINT nFlags, CPoint point)
+//{
+//
+//	
+//	CDialogEx::OnRButtonUp(nFlags, point);
+//}
 
 
 void CAIproject1Dlg::OnBnClickedButtonDisplay()
@@ -426,8 +420,10 @@ void CAIproject1Dlg::draw()
 }
 
 
-void CAIproject1Dlg::drawCellResult(int row, int col)
+void CAIproject1Dlg::drawCellResult(int r, int c)
 {
+	drawCell(r, c);
+
 	CClientDC dc(this);
 	dc.SetTextColor(colorBlue);
 	dc.SetBkMode(TRANSPARENT);
@@ -435,9 +431,9 @@ void CAIproject1Dlg::drawCellResult(int row, int col)
 	dc.SelectObject(nullBrush);
 
 	CString s;
-	auto tmp = maze->getPoint(row, col);
+	auto tmp = maze->getPoint(r, c);
 	s.Format(L"%.2f", tmp.value + tmp.reward);
-	auto rect = getRect(make_pair(row, col));
+	auto rect = getRect(make_pair(r, c));
 	dc.Rectangle(&rect);
 	rect.left++;
 	rect.right--;
@@ -470,6 +466,7 @@ void CAIproject1Dlg::redraw(int r, int c)
 void CAIproject1Dlg::drawCell(int r, int c)
 {
 	if (r == row - 1 && c == col - 1) drawDest(r, c);
+	else if (r == 0 && c == 0) drawOrigin(r, c);
 	else {
 		switch (maze->getPoint(r, c).type)
 		{
@@ -478,4 +475,156 @@ void CAIproject1Dlg::drawCell(int r, int c)
 		case LUCKY: drawLucky(r, c); break;
 		}
 	}
+}
+
+
+void CAIproject1Dlg::OnBnClickedButtonAutorun()
+{
+	agent->iteration(15,true);
+	showResult = true;
+	draw();
+}
+
+
+void CAIproject1Dlg::OnBnClickedRadio(UINT uID)
+{
+	algo = uID - IDC_RADIO1;
+	agent->setAlgo(algo);
+	maze->clearEst();
+	draw();
+}
+
+
+void CAIproject1Dlg::OnBnClickedButtonSeq(UINT uID)
+{
+	unsigned times;
+	switch (uID)
+	{
+	case IDC_BUTTON_SEQ1: times = 1; break;
+	case IDC_BUTTON_SEQ10: times = 10; break;
+	case IDC_BUTTON_SEQ50: times = 50; break;
+	default: throw(-1);
+	}
+	agent->iteration(times, false);
+	showResult = true;
+	draw();
+}
+
+
+void CAIproject1Dlg::OnBnClickedButtonRev(UINT uID)
+{
+	unsigned times;
+	switch (uID)
+	{
+	case IDC_BUTTON_REV1: times = 1; break;
+	case IDC_BUTTON_REV10: times = 10; break;
+	case IDC_BUTTON_REV50: times = 50; break;
+	default: throw(-1);
+	}
+	agent->iteration(times, true);
+	showResult = true;
+	draw();
+}
+
+
+void CAIproject1Dlg::drawOrigin(int row, int col)
+{
+	CClientDC dc(this);
+	CBrush cBrush;
+	CRect cRect = getRect(make_pair(row, col));
+	cBrush.CreateSolidBrush(RGB(255, 216, 104));
+
+	dc.SelectObject(cBrush);
+	dc.SelectObject(nullPen);
+
+	dc.Rectangle(cRect);
+}
+
+
+void CAIproject1Dlg::OnBnClickedButtonChange()
+{
+	ChangeSizeDlg dlg;
+	dlg.preset(row, col);
+	if (dlg.DoModal() == IDOK)
+	{
+		int r = _ttoi(dlg.v_row);
+		int c = _ttoi(dlg.v_col);
+		if (row != r && col != c)
+		{
+			row = r, col = c;
+			auto oldMaze = maze;
+			maze = new Maze(r, c);
+			agent->setMaze(maze);
+			delete oldMaze;
+			draw();
+		}
+	}
+}
+
+
+void CAIproject1Dlg::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if (point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
+	{
+		auto grid = getGrid(make_pair(point.x, point.y));
+		if (grid.first == row - 1 && grid.second == col - 1)
+		{
+			AfxMessageBox(L"不可以改变终点的类型!"); return;
+		}
+		else if (grid.first == 0 && grid.second == 0)
+		{
+			AfxMessageBox(L"不可以改变起点的类型!"); return;
+		}
+		auto oldPoint = maze->getPoint(grid);
+		if (oldPoint.type == ROAD) typeToSet=WALL;
+		else typeToSet=ROAD;
+		maze->setCell(grid.first, grid.second, typeToSet);
+		redraw(grid.first, grid.second);
+	}
+
+	CDialogEx::OnLButtonDown(nFlags, point);
+}
+
+
+void CAIproject1Dlg::OnMouseMove(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if ((nFlags & MK_LBUTTON || nFlags & MK_RBUTTON)
+		&& point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
+	{
+		auto grid = getGrid(make_pair(point.x, point.y));
+		if (!(grid.first == 0 && grid.second == 0) && !(grid.first == row - 1 && grid.second == col - 1))
+		{
+			maze->setCell(grid.first, grid.second, typeToSet);
+			redraw(grid.first, grid.second);
+		}
+	}
+
+	CDialogEx::OnMouseMove(nFlags, point);
+}
+
+
+void CAIproject1Dlg::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	if (point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
+	{
+		auto grid = getGrid(make_pair(point.x, point.y));
+		if (grid.first == row - 1 && grid.second == col - 1)
+		{
+			AfxMessageBox(L"不可以改变终点的类型!"); return;
+		}
+		else if (grid.first == 0 && grid.second == 0)
+		{
+			AfxMessageBox(L"不可以改变起点的类型!"); return;
+		}
+		auto oldPoint = maze->getPoint(grid);
+		if (oldPoint.type == ROAD) typeToSet=TRAP;
+		else if (oldPoint.type == TRAP) typeToSet=LUCKY;
+		else typeToSet=ROAD;
+		maze->setCell(grid.first, grid.second, typeToSet);
+		redraw(grid.first, grid.second);
+	}
+
+	CDialogEx::OnRButtonDown(nFlags, point);
 }

@@ -60,7 +60,7 @@ void initMaze()
 		delete maze;
 	}
 		maze = new Maze(row, col);
-		vector<pair<int, int> > walls = { make_pair(1,2), make_pair(2,2), make_pair(2,6), make_pair(2,8), make_pair(3,2),
+		vector<pair<int, int> > walls = { make_pair(0,0), make_pair(1,2), make_pair(2,2), make_pair(2,6), make_pair(2,8), make_pair(3,2),
 make_pair(3,3), make_pair(3,4), make_pair(3,5), make_pair(3,6), make_pair(3,8), make_pair(3,9), make_pair(3,10),
 make_pair(3,11), make_pair(3,12), make_pair(3,13), make_pair(3,14), make_pair(4,14), make_pair(5,2), make_pair(5,3),
 make_pair(5,4), make_pair(5,5), make_pair(5,6), make_pair(5,7), make_pair(5,8), make_pair(5,11), make_pair(5,12), make_pair(5,14),
@@ -177,6 +177,9 @@ BOOL CAIproject1Dlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+
+	colorBlue = RGB(0, 122, 204);
+
 	nullPen = CPen::FromHandle((HPEN)GetStockObject(NULL_PEN));
 	nullBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
 	whiteBrush.CreateSolidBrush(RGB(255, 255, 255));
@@ -184,6 +187,7 @@ BOOL CAIproject1Dlg::OnInitDialog()
 	blackBrush.CreateSolidBrush(RGB(0, 0, 0));
 	whitePen.CreatePen(0, 2, RGB(255, 255, 255));
 	OnBnClickedButtonDefault();
+	bluePen.CreatePen(0, 1, colorBlue);
 
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -246,7 +250,8 @@ void CAIproject1Dlg::drawWall(int row, int col)
 	// TODO: 在此处添加实现代码.
 	CClientDC dc(this);
 	CRect cRect = getRect(make_pair(row, col));
-	auto tmp=dc.SelectObject(blackBrush);
+	dc.SelectObject(blackBrush);
+	dc.SelectObject(blackPen);
 	dc.Rectangle(cRect);
 
 	//dc.SelectObject(tmp);
@@ -272,10 +277,7 @@ void CAIproject1Dlg::drawMaze()
 		{
 			for (int j = 0; j != tmp[i].size(); j++)
 			{
-				if (i == row - 1 && j == col - 1) drawDest(i, j);
-				else if (tmp[i][j].type == WALL) drawWall(i, j);
-				else if (tmp[i][j].type == TRAP) drawTrap(i, j);
-				else if (tmp[i][j].type == LUCKY) drawLucky(i, j);
+				drawCell(i, j);
 			}
 		}
 		
@@ -362,7 +364,7 @@ void CAIproject1Dlg::OnLButtonUp(UINT nFlags, CPoint point)
 		auto oldPoint=maze->getPoint(grid);
 		if (oldPoint.type == WALL) maze->setRoad(grid.first, grid.second);
 		else maze->setWall(grid.first, grid.second);
-		draw();
+		redraw(grid.first, grid.second);
 	}
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
@@ -381,7 +383,7 @@ void CAIproject1Dlg::OnRButtonUp(UINT nFlags, CPoint point)
 		if (oldPoint.type == ROAD) maze->setTrap(grid.first, grid.second);
 		else if (oldPoint.type == TRAP) maze->setLucky(grid.first, grid.second);
 		else maze->setRoad(grid.first, grid.second);
-		draw();
+		redraw(grid.first, grid.second);
 	}
 	
 	CDialogEx::OnRButtonUp(nFlags, point);
@@ -398,33 +400,12 @@ void CAIproject1Dlg::OnBnClickedButtonDisplay()
 void CAIproject1Dlg::drawResult()
 {
 	drawMaze();
-	auto blue = RGB(0, 122, 204);
-	CClientDC dc(this);
-	CPen bluePen;
-	bluePen.CreatePen(0, 1, blue);
-
-	dc.SetTextColor(blue);
-	dc.SetBkMode(TRANSPARENT);
-	dc.SelectObject(bluePen);
-	dc.SelectObject(nullBrush);
-
-	auto tmp = maze->getMaze();
-	for (int i = 0; i != tmp.size(); i++)
+	auto row = maze->getRow(), col = maze->getCol();
+	for (int i = 0; i != row; i++)
 	{
-		for (int j = 0; j != tmp[i].size(); j++)
+		for (int j = 0; j != col; j++)
 		{
-			CString s;
-			s.Format(L"%.2f", tmp[i][j].value + tmp[i][j].reward);
-			auto rect = getRect(make_pair(i, j));
-			dc.Rectangle(&rect);
-			rect.left++;
-			rect.right--;
-			rect.top++;
-			rect.bottom--;
-			if (tmp[i][j].type != WALL && tmp[i][j].type != UNDEF)
-			{
-				dc.DrawText(s, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-			}
+			drawCellResult(i, j);
 		}
 	}
 }
@@ -442,4 +423,59 @@ void CAIproject1Dlg::draw()
 	if (maze == nullptr) return;
 	if (showResult) drawResult();
 	else drawMaze();
+}
+
+
+void CAIproject1Dlg::drawCellResult(int row, int col)
+{
+	CClientDC dc(this);
+	dc.SetTextColor(colorBlue);
+	dc.SetBkMode(TRANSPARENT);
+	dc.SelectObject(bluePen);
+	dc.SelectObject(nullBrush);
+
+	CString s;
+	auto tmp = maze->getPoint(row, col);
+	s.Format(L"%.2f", tmp.value + tmp.reward);
+	auto rect = getRect(make_pair(row, col));
+	dc.Rectangle(&rect);
+	rect.left++;
+	rect.right--;
+	rect.top++;
+	rect.bottom--;
+	if (tmp.type != WALL && tmp.type != UNDEF)
+	{
+		dc.DrawText(s, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	}
+}
+
+
+void CAIproject1Dlg::redraw(int r, int c)
+{
+	CClientDC dc(this);
+	dc.SelectObject(whiteBrush);
+	dc.SelectObject(whitePen);
+	dc.Rectangle((CRect)getRect(make_pair(r, c)));
+	if (showResult)
+	{
+		drawCellResult(r, c);
+	}
+	else
+	{
+		drawCell(r, c);
+	}
+}
+
+
+void CAIproject1Dlg::drawCell(int r, int c)
+{
+	if (r == row - 1 && c == col - 1) drawDest(r, c);
+	else {
+		switch (maze->getPoint(r, c).type)
+		{
+		case WALL: drawWall(r, c); break;
+		case TRAP: drawTrap(r, c); break;
+		case LUCKY: drawLucky(r, c); break;
+		}
+	}
 }

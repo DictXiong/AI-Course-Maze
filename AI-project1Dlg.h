@@ -4,7 +4,6 @@
 
 #pragma once
 
-
 // CAIproject1Dlg 对话框
 class CAIproject1Dlg : public CDialogEx
 {
@@ -51,4 +50,9 @@ public:
 	void drawResult();
 	afx_msg void OnBnClickedButtonDefault();
 	void draw();
+	CPen bluePen;
+	COLORREF colorBlue;
+	void drawCellResult(int row, int col);
+	void redraw(int row, int col);
+	void drawCell(int row, int col);
 };

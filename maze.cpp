@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pch.h"
+#include<cstdio>
 #include<ctime>
 #include<cstdlib>
 #include<vector>
@@ -14,10 +15,6 @@ const double V_DEST = 1;
 const double V_LUCKY = 0.1;
 
 
-enum Direction
-{
-	UP = 0, UR, RIGHT, RD, DOWN, DL, LEFT, LU, null
-};
 enum MapElem
 {
 	UNDEF, WALL, ROAD, TRAP, LUCKY //其中, WALL, TRAP 是固定点, value 值不得改变. 
@@ -30,29 +27,6 @@ inline bool walkable(MapElem m)
 {
 	return m != UNDEF && m != WALL;
 }
-
-const pair<int, int> DELTA[MAX_DIRECTION] = { make_pair(-1,0), make_pair(-1,1), make_pair(0,1), make_pair(1,1),
-	make_pair(1,0), make_pair(1,-1), make_pair(0,-1), make_pair(-1,-1) };
-
-inline Direction littleLeft(Direction direction)
-{
-	return Direction((direction - 1 + MAX_DIRECTION) % MAX_DIRECTION);
-}
-inline Direction littleRight(Direction direction)
-{
-	return Direction((direction + 1 + MAX_DIRECTION) % MAX_DIRECTION);
-}
-
-//当前向 direction 走一格的坐标
-inline pair<int, int> getAimPos(int r, int c, Direction direction)
-{
-	return make_pair(r + DELTA[direction].first, c + DELTA[direction].second);
-}
-inline pair<int, int> getAimPos(pair<int, int> pos, Direction direction)
-{
-	return getAimPos(pos.first, pos.second, direction);
-}
-
 
 class MazeElem
 {

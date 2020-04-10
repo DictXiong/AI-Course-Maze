@@ -1,73 +1,102 @@
 #include "pch.h"
 #include "maze.cpp"
 
-//algorithm中：0-MDP，1-QLearning，2-SARSA
+
+const double PROB_S = 0.6;
+const double PROB_L = 0.2;
+const double PROB_R = 0.2;
+const double DISCOUNT = 0.95;
+const double EPSILON = 1;
+const double LEARNING_RATE = 0.9;
+
+
+enum Direction
+{
+	UP = 0, UR, RIGHT, RD, DOWN, DL, LEFT, LU, null
+};
+
+const pair<int, int> DELTA[MAX_DIRECTION] = { make_pair(-1,0), make_pair(-1,1), make_pair(0,1), make_pair(1,1),
+	make_pair(1,0), make_pair(1,-1), make_pair(0,-1), make_pair(-1,-1) };
+
+inline Direction littleLeft(Direction direction)
+{
+	return Direction((direction - 1 + MAX_DIRECTION) % MAX_DIRECTION);
+}
+inline Direction littleRight(Direction direction)
+{
+	return Direction((direction + 1 + MAX_DIRECTION) % MAX_DIRECTION);
+}
+
+//当前向 direction 走一格的坐标
+inline pair<int, int> getAimPos(int r, int c, Direction direction)
+{
+	return make_pair(r + DELTA[direction].first, c + DELTA[direction].second);
+}
+inline pair<int, int> getAimPos(pair<int, int> pos, Direction direction)
+{
+	return getAimPos(pos.first, pos.second, direction);
+}
+
+
+
 typedef MazeElem Successor;
+//algorithm中：0-MDP，1-QLearning，2-SARSA
 class Agent {
 private:
-	Maze maze;
+	Maze* _m = nullptr;
 	Direction** decision;
 	Direction(Agent::* iterfunc)(int, int);
 	//选择一个方向后, 直走/左前方/右前方的概率
-	double probs, probl, probr;
-	int algorithm;
-	double discount;
-	double epsilon;
-	double learning_rate;
 public:
-	Agent(int r, int c, double ps, double pl, double pr, int algo = 0, double disc = 0.95, double eps = 1, double lr = 1)
-		:probs(ps), probl(pl), probr(pr), maze(r, c), algorithm(algo), discount(disc), epsilon(eps), learning_rate(lr) {
+	Agent(Maze *maze, int algo = 0)
+	{
+		setMaze(maze);
+		setAlgo(algo);
+	}
+	~Agent() {
+		for (int i = 0; i < _m->getRow(); i++) {
+			delete[] decision[i];
+		}
+		delete[] decision;
+		delete _m;
+	}
+
+	void setMaze(Maze* maze)
+	{
+		if (_m != nullptr)
+		{
+			for (int i = 0; i < _m->getRow(); i++) {
+				delete[] decision[i];
+			}
+			delete[] decision;
+
+			delete _m;
+		}
+		_m = maze;
+		int r = _m->getRow(), c = _m->getCol();
 		decision = new Direction * [r];
 		for (int i = 0; i < r; i++) {
 			decision[i] = new Direction[c];
 			for (int j = 0; j < c; j++) {
-				decision[i][j] = UP;
+				decision[i][j] = null;
 			}
 		}
-		if (algorithm == 0) {
-			iterfunc = &Agent::MDPDecision;
-		}
-		else if (algorithm == 1) {
-			iterfunc = &Agent::QLearningDecision;
-		}
-		else if (algorithm == 2) {
-			iterfunc = &Agent::SARSADecision;
-		}
-		else {
-			printf("Wrong Algorithm Code.\n");
-			throw(-1);
-		}
-	}
-	~Agent() {
-		for (int i = 0; i < maze.getRow(); i++) {
-			delete[] decision[i];
-		}
-		delete[] decision;
 	}
 
-	void clearEst()
+	void setAlgo(int i)
 	{
-		maze.clearEst();
-	}
-	//输入的坐标应从1开始 //这四个函数让我感觉: 是不是这四个不应该在Maze里实现? 或者Agent应当继承Maze?
-	void setWall(int r, int c)
-	{
-		maze.setWall(r - 1, c - 1);
-	}
-
-	void setTrap(int r, int c)
-	{
-		maze.setTrap(r - 1, c - 1);
+		switch (i)
+		{
+		case 0:iterfunc = &Agent::MDPDecision; break;
+		case 1:iterfunc = &Agent::QLearningDecision; break;
+		case 2:iterfunc = &Agent::SARSADecision; break;
+		default:throw(-1);
+		}
 	}
 
-	void setLucky(int r, int c)
+	Maze* getMaze()
 	{
-		maze.setLucky(r - 1, c - 1);
-	}
-
-	void setRoad(int r, int c)
-	{
-		maze.setRoad(r - 1, c - 1);
+		return _m;
 	}
 
 	//对于一个选定的方向, 获得可能的后继情况
@@ -79,18 +108,18 @@ public:
 		pair<int, int> nextpos;
 
 		nextpos = getAimPos(r, c, direction);//直行
-		tmp = maze.getPoint(nextpos);
-		tmp.prob = probs;
+		tmp = _m->getPoint(nextpos);
+		tmp.prob = PROB_S;
 		if (walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
 		nextpos = getAimPos(r, c, littleLeft(direction));//左前方
-		tmp = maze.getPoint(nextpos);
-		tmp.prob = probl;
+		tmp = _m->getPoint(nextpos);
+		tmp.prob = PROB_L;
 		if (walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
 		nextpos = getAimPos(r, c, littleRight(direction));//右前方
-		tmp = maze.getPoint(nextpos);
-		tmp.prob = probr;
+		tmp = _m->getPoint(nextpos);
+		tmp.prob = PROB_R;
 		if (walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
 		for (auto& i : ans)//归一化
@@ -104,7 +133,7 @@ public:
 		double pay[MAX_DIRECTION / 2];
 		for (Direction i = UP; i < MAX_DIRECTION; i = Direction(i + 2))
 		{
-			if (!maze.lawful(getAimPos(r, c, i)))
+			if (!_m->lawful(getAimPos(r, c, i)))
 			{
 				pay[i / 2] = -INF;
 				continue;
@@ -123,7 +152,7 @@ public:
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
 			//此处使用曼哈顿距离作为启发函数，如果移动后更靠近起点则回报会有一定折扣
 			if ((Direction(2 * i) == Direction::UP) || (Direction(2 * i) == Direction::LEFT)) {
-				pay[i] = pay[i] * discount;
+				pay[i] = pay[i] * DISCOUNT;
 				//discount_flag = true;
 			}
 			if (pay[i] > estpay) {
@@ -135,9 +164,9 @@ public:
 			//}
 		}
 		//if (discount_flag) {
-		//	estpay /= discount;
+		//	estpay /= DISCOUNT;
 		//}
-		maze.estPoint(r, c, estpay);
+		_m->estPoint(r, c, estpay);
 		return direction;
 	}
 	Direction QLearningDecision(int r, int c) {
@@ -147,40 +176,40 @@ public:
 		double last_value = 0;
 		for (Direction i = UP; i < MAX_DIRECTION; i = Direction(i + 2))
 		{
-			if (!maze.lawful(getAimPos(r, c, i)))
+			if (!_m->lawful(getAimPos(r, c, i)))
 			{
 				pay[i / 2] = -INF;
 				continue;
 			}
 			//为求得后继点的最大Q值，对于可能到达的点先使用MDP更新估计值，之后直接将估计值作为max Q(s')纳入计算
 			nextpos = getAimPos(r, c, Direction(i));
-			if (maze.lawful(nextpos)) {
-				last_value = maze.getPoint(nextpos.first, nextpos.second).value;
+			if (_m->lawful(nextpos)) {
+				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
 				MDPDecision(nextpos.first, nextpos.second);
-				if (maze.getPoint(nextpos.first, nextpos.second).value < last_value) {
-					maze.estPoint(nextpos.first, nextpos.second, last_value);
+				if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
+					_m->estPoint(nextpos.first, nextpos.second, last_value);
 				}
 			}
 			nextpos = getAimPos(r, c, littleLeft(Direction(i)));
-			if (maze.lawful(nextpos)) {
-				last_value = maze.getPoint(nextpos.first, nextpos.second).value;
+			if (_m->lawful(nextpos)) {
+				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
 				MDPDecision(nextpos.first, nextpos.second);
-				if (maze.getPoint(nextpos.first, nextpos.second).value < last_value) {
-					maze.estPoint(nextpos.first, nextpos.second, last_value);
+				if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
+					_m->estPoint(nextpos.first, nextpos.second, last_value);
 				}
 			}
 			nextpos = getAimPos(r, c, littleRight(Direction(i)));
-			if (maze.lawful(nextpos)) {
-				last_value = maze.getPoint(nextpos.first, nextpos.second).value;
+			if (_m->lawful(nextpos)) {
+				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
 				MDPDecision(nextpos.first, nextpos.second);
-				if (maze.getPoint(nextpos.first, nextpos.second).value < last_value) {
-					maze.estPoint(nextpos.first, nextpos.second, last_value);
+				if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
+					_m->estPoint(nextpos.first, nextpos.second, last_value);
 				}
 			}
 			auto succ = getSuccessor(r, c, Direction(i));
-			pay[i / 2] = (1 - learning_rate) * maze.getPoint(r, c).value;
+			pay[i / 2] = (1 - LEARNING_RATE) * _m->getPoint(r, c).value;
 			for (auto j : succ) {
-				pay[i / 2] = pay[i / 2] + learning_rate * j.prob * (j.reward + discount * j.value);
+				pay[i / 2] = pay[i / 2] + LEARNING_RATE * j.prob * (j.reward + DISCOUNT * j.value);
 			}
 		}
 		Direction direction = null;
@@ -198,7 +227,7 @@ public:
 			//由于浮点数有一定误差，此处用小量EPS进行校正，即当两数比值在(1-EPS,1+EPS)内时认为两浮点数相等
 			else if (pay[i] > estpay * (1 - EPS)) {
 				nextpos = getAimPos(cur_pos, Direction(2 * i));
-				if (maze.lawful(nextpos)) {
+				if (_m->lawful(nextpos)) {
 					nextpos = getAimPos(nextpos, decision[nextpos.first][nextpos.second]);
 					if (nextpos != cur_pos) {
 						direction = Direction(2 * i);
@@ -208,8 +237,8 @@ public:
 			}
 		}
 		//采用epsilon-greedy
-		if ((rand() / RAND_MAX) < epsilon) {
-			maze.estPoint(r, c, estpay);
+		if ((rand() / RAND_MAX) < EPSILON) {
+			_m->estPoint(r, c, estpay);
 			return direction;
 		}
 		else {
@@ -217,7 +246,7 @@ public:
 			double rand_div = 1 / directions.size();
 			for (int i = 0; i < directions.size(); i++) {
 				if (rand_d < (i + 1) * rand_div) {
-					maze.estPoint(r, c, pay[directions[i] / 2]);
+					_m->estPoint(r, c, pay[directions[i] / 2]);
 					return directions[i];
 				}
 			}
@@ -227,15 +256,15 @@ public:
 		double pay[MAX_DIRECTION / 2];
 		for (Direction i = UP; i < MAX_DIRECTION; i = Direction(i + 2))
 		{
-			if (!maze.lawful(getAimPos(r, c, i)))
+			if (!_m->lawful(getAimPos(r, c, i)))
 			{
 				pay[i / 2] = -INF;
 				continue;
 			}
 			auto succ = getSuccessor(r, c, Direction(i));
-			pay[i / 2] = (1 - learning_rate) * maze.getPoint(r, c).value;
+			pay[i / 2] = (1 - LEARNING_RATE) * _m->getPoint(r, c).value;
 			for (auto j : succ) {
-				pay[i / 2] = pay[i / 2] + learning_rate * j.prob * (j.reward + discount * j.value);
+				pay[i / 2] = pay[i / 2] + LEARNING_RATE * j.prob * (j.reward + DISCOUNT * j.value);
 			}
 		}
 		Direction direction = null;
@@ -250,8 +279,8 @@ public:
 				estpay = pay[i];
 			}
 		}
-		if ((rand() / RAND_MAX) < epsilon) {
-			maze.estPoint(r, c, estpay);
+		if ((rand() / RAND_MAX) < EPSILON) {
+			_m->estPoint(r, c, estpay);
 			return direction;
 		}
 		else {
@@ -259,15 +288,15 @@ public:
 			double rand_div = 1 / directions.size();
 			for (int i = 0; i < directions.size(); i++) {
 				if (rand_d < (i + 1) * rand_div) {
-					maze.estPoint(r, c, pay[directions[i] / 2]);
+					_m->estPoint(r, c, pay[directions[i] / 2]);
 					return directions[i];
 				}
 			}
 		}
 	}
 	void iteration(bool reverse_iter = false) {
-		int row = maze.getRow();
-		int col = maze.getCol();
+		int row = _m->getRow();
+		int col = _m->getCol();
 		int r = 0;
 		int c = 0;
 		if (reverse_iter) {
@@ -275,7 +304,7 @@ public:
 				r = 0;
 				c = s - r;
 				while (r < row) {
-					if (maze.lawful(r, c)) {
+					if (_m->lawful(r, c)) {
 						decision[r][c] = (this->*iterfunc)(r, c);
 					}
 					r++;
@@ -303,10 +332,10 @@ public:
 			}
 		}
 	}
-	pair< vector< vector<MazeElem> >, vector< pair<pair<int, int>, Direction> >>   getResult()
+	vector< pair<pair<int, int>, Direction> >   getResult()
 	{
-		int row = maze.getRow();
-		int col = maze.getCol();
+		int row = _m->getRow();
+		int col = _m->getCol();
 		vector< pair<pair<int, int>, Direction> > ans;
 		int i = 0, x = 0, y = 0;
 		while ((x < row - 1) || (y < col - 1))
@@ -324,22 +353,22 @@ public:
 				break;
 			}
 		}
-		return make_pair(maze.getMaze(), ans);
+		return ans;
 	}
 
 	void print() {
-		maze.print();
+		_m->print();
 	}
 	void printRoute() {
-		int row = maze.getRow();
-		int col = maze.getCol();
+		int row = _m->getRow();
+		int col = _m->getCol();
 		char** whole = new char* [row];
 		for (int i = 0; i < row; i++) {
 			whole[i] = new char[col + 1];
 			whole[i][col] = '\0';
 			for (int j = 0; j < col; j++) {
 				whole[i][j] = 0;
-				auto tmp = maze.getPoint(i, j);
+				auto tmp = _m->getPoint(i, j);
 				if (tmp.type == WALL) whole[i][j] = 'H';
 				else if (tmp.type == TRAP) whole[i][j] == '#';
 			}

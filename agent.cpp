@@ -217,19 +217,14 @@ public:
 		vector<Direction> directions;
 		pair<int, int>cur_pos = make_pair(r, c);
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
-			if (pay[i] > -INF / 2) {
-				directions.push_back(Direction(2 * i));
-			}
-			if (pay[i] > estpay * (1 + EPS)) {
-				direction = Direction(2 * i);
-				estpay = pay[i];
-			}
-			//由于浮点数有一定误差，此处用小量EPS进行校正，即当两数比值在(1-EPS,1+EPS)内时认为两浮点数相等
-			else if (pay[i] > estpay * (1 - EPS)) {
-				nextpos = getAimPos(cur_pos, Direction(2 * i));
-				if (_m->lawful(nextpos)) {
-					nextpos = getAimPos(nextpos, decision[nextpos.first][nextpos.second]);
-					if (nextpos != cur_pos) {
+			nextpos = getAimPos(cur_pos, Direction(2 * i));
+			if (_m->lawful(nextpos)) {
+				nextpos = getAimPos(nextpos, decision[nextpos.first][nextpos.second]);
+				if (nextpos != cur_pos) {
+					if (pay[i] > -INF / 2) {
+						directions.push_back(Direction(2 * i));
+					}
+					if (pay[i] > estpay) {
 						direction = Direction(2 * i);
 						estpay = pay[i];
 					}
@@ -271,12 +266,17 @@ public:
 		double estpay = -INF;
 		vector<Direction> directions;
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
-			if (pay[i] > -INF / 2) {
-				directions.push_back(Direction(2 * i));
-			}
-			if (pay[i] >= estpay) {
-				direction = Direction(2 * i);
-				estpay = pay[i];
+			if (_m->lawful(nextpos)) {
+				nextpos = getAimPos(nextpos, decision[nextpos.first][nextpos.second]);
+				if (nextpos != cur_pos) {
+					if (pay[i] > -INF / 2) {
+						directions.push_back(Direction(2 * i));
+					}
+					if (pay[i] > estpay) {
+						direction = Direction(2 * i);
+						estpay = pay[i];
+					}
+				}
 			}
 		}
 		if ((rand() / RAND_MAX) < EPSILON) {
@@ -310,8 +310,11 @@ public:
 					c = s - r;
 					while (r < row) 
 					{
-						if (_m->lawful(r, c)) 
-							decision[r][c] = (this->*iterfunc)(r, c);
+						if (c < col) {
+							if (isFixedPoint(_m.getPoint(r, c))) {
+								decision[r][c] = (this->*iterfunc)(r, c);
+							}
+						}
 						r++;
 						c--;
 						if (c < 0) break;
@@ -327,8 +330,11 @@ public:
 					c = s - r;
 					while (r < row)
 					{
-						if (c < col) 
-							decision[r][c] = (this->*iterfunc)(r, c);
+						if (c < col) {
+							if (isFixedPoint(_m.getPoint(r, c))) {
+								decision[r][c] = (this->*iterfunc)(r, c);
+							}
+						}
 						r++;
 						c--;
 						if (c < 0) break;

@@ -6,7 +6,7 @@
 const double PROB_S = 0.6;
 const double PROB_L = 0.2;
 const double PROB_R = 0.2;
-const double DISCOUNT = 0.95;
+const double DISCOUNT = 0.99;
 const double EPSILON = 1;
 const double LEARNING_RATE = 0.9;
 
@@ -170,7 +170,7 @@ public:
 		return direction;
 	}
 	Direction QLearningDecision(int r, int c) {
-		//maze.estPoint(r, c, 0);
+		_m->estPoint(r, c, 10*V_TRAP);
 		double pay[MAX_DIRECTION / 2];
 		pair<int, int> nextpos;
 		double last_value = 0;
@@ -249,6 +249,7 @@ public:
 	}
 	Direction SARSADecision(int r, int c) {
 		double pay[MAX_DIRECTION / 2];
+		pair<int, int> nextpos;
 		for (Direction i = UP; i < MAX_DIRECTION; i = Direction(i + 2))
 		{
 			if (!_m->lawful(getAimPos(r, c, i)))
@@ -267,7 +268,7 @@ public:
 		vector<Direction> directions;
 		pair<int, int>cur_pos = make_pair(r, c);
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
-			auto nextpos = getAimPos(cur_pos, Direction(2 * i));
+			nextpos = getAimPos(cur_pos, Direction(2 * i));
 			if (_m->lawful(nextpos)) {
 				nextpos = getAimPos(nextpos, decision[nextpos.first][nextpos.second]);
 				if (nextpos != cur_pos) {
@@ -391,7 +392,7 @@ public:
 				whole[i][j] = 0;
 				auto tmp = _m->getPoint(i, j);
 				if (tmp.type == WALL) whole[i][j] = 'H';
-				else if (tmp.type == TRAP) whole[i][j] = '#';
+				else if (tmp.type == TRAP) whole[i][j] == '#';
 			}
 		}
 		whole[row - 1][col - 1] = '$';

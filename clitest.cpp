@@ -9,7 +9,7 @@ int main()
 	srand(static_cast<unsigned>(time(NULL)));
 	int row = 16;
 	int col = 16;
-	int times = 15;
+	int times = 30;
 	Maze maze(row,col);
 	vector<pair<int, int>> walls = { make_pair(1,2), make_pair(2,2), make_pair(2,6), make_pair(2,8), make_pair(3,2),
 	make_pair(3,3), make_pair(3,4), make_pair(3,5), make_pair(3,6), make_pair(3,8), make_pair(3,9), make_pair(3,10),
@@ -33,15 +33,18 @@ int main()
 	maze.setTrap(12, 15);
 	maze.setLucky(row-1, col-1);
 	//maze.print();
-	Agent Robot(&maze,0);
-	for (int i = 1; i <= times; i++) {
-		Robot.iteration(1,true);
-		if (i % 5) {
-			continue;
-		}
-		printf("\nAfter %d iterations:\n", i);
-		maze.print();
-		printf("\n");
-		Robot.printRoute();
-	}
+	Agent Robot(&maze,1);
+	Robot.iteration(times,true);
+	Robot.printRoute();
+//	for (int i = 1; i <= times; i++) {
+//		Robot.iteration(true);
+//		if (i % 5) {
+//			continue;
+//		}
+//		printf("\nAfter %d iterations:\n", i);
+//		maze.print();
+//		printf("\n");
+//		Robot.printRoute();
+//	}
+	return 0;
 } 

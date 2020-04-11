@@ -7,9 +7,10 @@
 #include "AI-project1.h"
 #include "AI-project1Dlg.h"
 #include "afxdialogex.h"
-#include "maze.cpp"
+#include "maze.h"
 #include "agent.cpp"
 #include "ChangeSizeDlg.h"
+#include "ArgChangeDlg.h"
 #include<utility>
 
 typedef std::pair<int, int> dint;
@@ -163,6 +164,7 @@ BEGIN_MESSAGE_MAP(CAIproject1Dlg, CDialogEx)
 	ON_WM_MOUSEMOVE()
 	ON_WM_RBUTTONDOWN()
 	ON_WM_SIZE()
+	ON_BN_CLICKED(IDC_BUTTON_CHANGE_ARG, &CAIproject1Dlg::OnBnClickedButtonChangeArg)
 END_MESSAGE_MAP()
 
 
@@ -434,6 +436,15 @@ void CAIproject1Dlg::drawResult()
 
 void CAIproject1Dlg::OnBnClickedButtonDefault()
 {
+	Helper::V_TRAP = -1;
+	Helper::V_DEST = 1;
+	Helper::V_LUCKY = 0.1;
+	Helper::PROB_S = 0.6;
+	Helper::PROB_L = 0.2;
+	Helper::PROB_R = 0.2;
+	Helper::DISCOUNT = 0.99;
+	Helper::EPSILON = 1;
+	Helper::LEARNING_RATE = 0.9;
 	initMaze();
 	agent->setMaze(maze);
 	agent->clearResult();
@@ -795,4 +806,48 @@ void CAIproject1Dlg::setStatus(Status s)
 	{
 		m_bar.SetPaneText(0, L"Running");
 	}
+}
+
+
+void CAIproject1Dlg::OnBnClickedButtonChangeArg()
+{
+	ArgChangeDlg dlg;
+	CString s;
+	s.Format(L"%.3f", Helper::V_TRAP);
+	dlg.v_v_trap = s;
+	s.Format(L"%.3f", Helper::V_LUCKY);
+	dlg.v_v_lucky = s;
+	s.Format(L"%.3f", Helper::V_DEST);
+	dlg.v_v_dest = s;
+	s.Format(L"%.3f", Helper::PROB_S);
+	dlg.v_prob_s = s;
+	s.Format(L"%.3f", Helper::PROB_L);
+	dlg.v_prob_l = s;
+	s.Format(L"%.3f", Helper::DISCOUNT);
+	dlg.v_discount = s;
+	s.Format(L"%.3f", Helper::EPSILON);
+	dlg.v_epsilon = s;
+	s.Format(L"%.3f", Helper::LEARNING_RATE);
+	dlg.v_learning_rate = s;
+
+	if (dlg.DoModal() == IDOK)
+	{
+		double tmp1, tmp2;
+		Helper::V_TRAP = _ttof(dlg.v_v_trap);
+		Helper::V_LUCKY = _ttof(dlg.v_v_lucky);
+		Helper::V_DEST = _ttof(dlg.v_v_dest);
+		tmp1 = _ttof(dlg.v_prob_s);
+		tmp2 = _ttof(dlg.v_prob_l);
+		Helper::PROB_S = tmp1;
+		Helper::PROB_L = tmp2;
+		Helper::PROB_R = 1 - tmp1 - tmp2;
+		Helper::DISCOUNT = _ttof(dlg.v_discount);
+		Helper::EPSILON = _ttof(dlg.v_epsilon);
+		Helper::LEARNING_RATE = _ttof(dlg.v_learning_rate);
+		agent->clearResult();
+		maze->reload();
+		draw();
+		setStatus(READY);
+	}
+
 }

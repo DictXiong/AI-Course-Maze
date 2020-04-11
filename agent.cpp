@@ -1,24 +1,11 @@
 //#include "pch.h"
 #pragma once
-#include "maze.cpp"
-
-
-const double PROB_S = 0.6;
-const double PROB_L = 0.2;
-const double PROB_R = 0.2;
-const double DISCOUNT = 0.95;
-const double EPSILON = 1;
-const double LEARNING_RATE = 0.9;
-
+#include "maze.h"
 
 enum Direction
 {
 	UP = 0, UR, RIGHT, RD, DOWN, DL, LEFT, LU, null
 };
-
-const pair<int, int> DELTA[MAX_DIRECTION] = { make_pair(-1,0), make_pair(-1,1), make_pair(0,1), make_pair(1,1),
-	make_pair(1,0), make_pair(1,-1), make_pair(0,-1), make_pair(-1,-1) };
-
 inline Direction littleLeft(Direction direction)
 {
 	return Direction((direction - 1 + MAX_DIRECTION) % MAX_DIRECTION);
@@ -28,17 +15,19 @@ inline Direction littleRight(Direction direction)
 	return Direction((direction + 1 + MAX_DIRECTION) % MAX_DIRECTION);
 }
 
+const std::pair<int, int> DELTA[MAX_DIRECTION] = { std::make_pair(-1,0), std::make_pair(-1,1), std::make_pair(0,1), std::make_pair(1,1),
+	std::make_pair(1,0), std::make_pair(1,-1), std::make_pair(0,-1), std::make_pair(-1,-1) };
+
+
 //当前向 direction 走一格的坐标
-inline pair<int, int> getAimPos(int r, int c, Direction direction)
+inline std::pair<int, int> getAimPos(int r, int c, Direction direction)
 {
-	return make_pair(r + DELTA[direction].first, c + DELTA[direction].second);
+	return std::make_pair(r + DELTA[direction].first, c + DELTA[direction].second);
 }
-inline pair<int, int> getAimPos(pair<int, int> pos, Direction direction)
+inline std::pair<int, int> getAimPos(std::pair<int, int> pos, Direction direction)
 {
 	return getAimPos(pos.first, pos.second, direction);
 }
-
-
 
 typedef MazeElem Successor;
 //algorithm中：0-MDP，1-QLearning，2-SARSA
@@ -109,18 +98,18 @@ public:
 
 		nextpos = getAimPos(r, c, direction);//直行
 		tmp = _m->getPoint(nextpos);
-		tmp.prob = PROB_S;
-		if (walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
+		tmp.prob = Helper::PROB_S;
+		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
 		nextpos = getAimPos(r, c, littleLeft(direction));//左前方
 		tmp = _m->getPoint(nextpos);
-		tmp.prob = PROB_L;
-		if (walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
+		tmp.prob = Helper::PROB_L;
+		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
 		nextpos = getAimPos(r, c, littleRight(direction));//右前方
 		tmp = _m->getPoint(nextpos);
-		tmp.prob = PROB_R;
-		if (walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
+		tmp.prob = Helper::PROB_R;
+		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
 		for (auto& i : ans)//归一化
 		{
@@ -152,7 +141,7 @@ public:
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
 			//此处使用曼哈顿距离作为启发函数，如果移动后更靠近起点则回报会有一定折扣
 			if ((Direction(2 * i) == Direction::UP) || (Direction(2 * i) == Direction::LEFT)) {
-				pay[i] = pay[i] * DISCOUNT;
+				pay[i] = pay[i] * Helper::DISCOUNT;
 				//discount_flag = true;
 			}
 			if (pay[i] > estpay) {
@@ -207,9 +196,9 @@ public:
 				}
 			}
 			auto succ = getSuccessor(r, c, Direction(i));
-			pay[i / 2] = (1 - LEARNING_RATE) * _m->getPoint(r, c).value;
+			pay[i / 2] = (1 - Helper::LEARNING_RATE) * _m->getPoint(r, c).value;
 			for (auto j : succ) {
-				pay[i / 2] = pay[i / 2] + LEARNING_RATE * j.prob * (j.reward + DISCOUNT * j.value);
+				pay[i / 2] = pay[i / 2] + Helper::LEARNING_RATE * j.prob * (j.reward + Helper::DISCOUNT * j.value);
 			}
 		}
 		Direction direction = null;
@@ -232,7 +221,7 @@ public:
 			}
 		}
 		//采用epsilon-greedy
-		if ((rand() / RAND_MAX) < EPSILON) {
+		if ((rand() / RAND_MAX) < Helper::EPSILON) {
 			_m->estPoint(r, c, estpay);
 			return direction;
 		}
@@ -257,9 +246,9 @@ public:
 				continue;
 			}
 			auto succ = getSuccessor(r, c, Direction(i));
-			pay[i / 2] = (1 - LEARNING_RATE) * _m->getPoint(r, c).value;
+			pay[i / 2] = (1 - Helper::LEARNING_RATE) * _m->getPoint(r, c).value;
 			for (auto j : succ) {
-				pay[i / 2] = pay[i / 2] + LEARNING_RATE * j.prob * (j.reward + DISCOUNT * j.value);
+				pay[i / 2] = pay[i / 2] + Helper::LEARNING_RATE * j.prob * (j.reward + Helper::DISCOUNT * j.value);
 			}
 		}
 		Direction direction = null;
@@ -281,7 +270,7 @@ public:
 				}
 			}
 		}
-		if ((rand() / RAND_MAX) < EPSILON) {
+		if ((rand() / RAND_MAX) < Helper::EPSILON) {
 			_m->estPoint(r, c, estpay);
 			return direction;
 		}
@@ -313,7 +302,7 @@ public:
 					while (r < row) 
 					{
 						if (c < col) {
-							if (!isFixedPoint(_m->getPoint(r, c).type)) {
+							if (!Helper::isFixedPoint(_m->getPoint(r, c).type)) {
 								decision[r][c] = (this->*iterfunc)(r, c);
 							}
 						}
@@ -333,7 +322,7 @@ public:
 					while (r < row)
 					{
 						if (c < col) {
-							if (!isFixedPoint(_m->getPoint(r, c).type)) {
+							if (!Helper::isFixedPoint(_m->getPoint(r, c).type)) {
 								decision[r][c] = (this->*iterfunc)(r, c);
 							}
 						}
@@ -351,7 +340,7 @@ public:
 		vector< pair<pair<int, int>, Direction> > ans;
 		int i = 0, x = 0, y = 0;
 		if (decision[x][y] == null) return ans;
-		while ((x < row - 1) || (y < col - 1))
+		while (_m->lawful(x, y) && ((x != row - 1) || (y != col - 1)))
 		{
 			ans.push_back(make_pair(make_pair(x, y), decision[x][y]));
 			switch (decision[x][y])
@@ -398,7 +387,7 @@ public:
 		int x = 0;
 		int y = 0;
 		int i = 0;
-		while ((x < row - 1) || (y < col - 1)) {
+		while (_m->lawful(x,y) && ((x != row-1 ) || (y != col-1))) {
 			if (decision[x][y] == Direction::LEFT) {
 				whole[x][y--] = '-';
 			}

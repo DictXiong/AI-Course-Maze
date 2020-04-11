@@ -71,4 +71,5 @@ public:
 	void setStatus(Status s);
     CFont font;
 	CFont bigFont;
+	afx_msg void OnBnClickedButtonChangeArg();
 };

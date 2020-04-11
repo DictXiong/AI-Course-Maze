@@ -27,7 +27,7 @@ const double PI = 3.14159265358979;
 enum Status {
 	READY, RUNNING, RUNNED
 };
-Status status = READY;
+Status status = Status::READY;
 
 static UINT INDICATORS[] = { IDS_BAR_STATUS, IDS_BAR_STEP };
 
@@ -37,7 +37,7 @@ bool showResult = false;
 Maze* maze = nullptr;
 Agent* agent = nullptr;
 int algo=0;
-MapElem typeToSet = ROAD;
+MapElem typeToSet = MapElem::ROAD;
 CList<CRect, CRect> m_listRect;
 
 // X-length-col, Y-width-row, start from 0.
@@ -52,16 +52,16 @@ RECT Rect: based on POINT
 
 dint getGrid(dint point)
 {
-	return std::make_pair(int((point.second - orgY) / (width * 1.0 / row)), int((point.first - orgX) / (length * 1.0 / col)));
+	return std::make_pair(int((1.0 * point.second - orgY) / (width * 1.0 / row)), int((1.0 * point.first - orgX) / (length * 1.0 / col)));
 }
 
 RECT getRect(dint grid)
 {
 	RECT ans;
 	ans.top = orgY + width * 1.0 / row * grid.first;
-	ans.bottom = orgY + width * 1.0 / row * (grid.first + 1);
+	ans.bottom = orgY + width * 1.0 / row * (grid.first + 1.0);
 	ans.left = orgX + length * 1.0 / col * grid.second;
-	ans.right = orgX + length * 1.0 / col * (grid.second + 1);
+	ans.right = orgX + length * 1.0 / col * (grid.second + 1.0);
 	return ans;
 }
 
@@ -139,6 +139,20 @@ CAIproject1Dlg::CAIproject1Dlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_AIPROJECT1_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+	colorBlue = RGB(0, 122, 204);
+	nullPen = CPen::FromHandle((HPEN)GetStockObject(NULL_PEN));
+	nullBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
+	whiteBrush.CreateSolidBrush(RGB(255, 255, 255));
+	blackPen.CreatePen(0, 2, RGB(0, 0, 0));
+	blackBrush.CreateSolidBrush(RGB(0, 0, 0));
+	whitePen.CreatePen(0, 2, RGB(255, 255, 255));
+	bluePen.CreatePen(0, 1, colorBlue);
+	font.CreatePointFont(70, TEXT("Arial"));
+	bigFont.CreatePointFont(105, TEXT("Arial"));
+
+	initMaze();
+	agent = new Agent(maze, algo);
 }
 
 void CAIproject1Dlg::DoDataExchange(CDataExchange* pDX)
@@ -151,8 +165,6 @@ BEGIN_MESSAGE_MAP(CAIproject1Dlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON_RESET, &CAIproject1Dlg::OnBnClickedButtonReset)
-//	ON_WM_LBUTTONUP()
-//	ON_WM_RBUTTONUP()
     ON_BN_CLICKED(IDC_BUTTON_DISPLAY, &CAIproject1Dlg::OnBnClickedButtonDisplay)
 	ON_BN_CLICKED(IDC_BUTTON_DEFAULT, &CAIproject1Dlg::OnBnClickedButtonDefault)
 	ON_BN_CLICKED(IDC_BUTTON_AUTORUN, &CAIproject1Dlg::OnBnClickedButtonAutorun)
@@ -227,21 +239,6 @@ BOOL CAIproject1Dlg::OnInitDialog()
 	m_bar.SetPaneInfo(1, IDS_BAR_STEP, SBPS_STRETCH, 0);
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, IDS_BAR_STEP);
 
-	initMaze();
-	agent = new Agent(maze, algo);
-
-	colorBlue = RGB(0, 122, 204);
-
-	nullPen = CPen::FromHandle((HPEN)GetStockObject(NULL_PEN));
-	nullBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
-	whiteBrush.CreateSolidBrush(RGB(255, 255, 255));
-	blackPen.CreatePen(0, 2, RGB(0, 0, 0));
-	blackBrush.CreateSolidBrush(RGB(0, 0, 0));
-	whitePen.CreatePen(0, 2, RGB(255, 255, 255));
-	bluePen.CreatePen(0, 1, colorBlue);
-	font.CreatePointFont(70, TEXT("Arial"));
-	bigFont.CreatePointFont(105, TEXT("Arial"));
-
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -301,7 +298,6 @@ HCURSOR CAIproject1Dlg::OnQueryDragIcon()
 // 在指定格点画墙
 void CAIproject1Dlg::drawWall(int row, int col)
 {
-	// TODO: 在此处添加实现代码.
 	CClientDC dc(this);
 	CRect cRect = getRect(make_pair(row, col));
 	dc.SelectObject(blackBrush);
@@ -316,7 +312,6 @@ void CAIproject1Dlg::drawWall(int row, int col)
 
 void CAIproject1Dlg::drawMaze()
 {
-	// TODO: 在此处添加实现代码.
 	if (maze != nullptr)
 	{
 		CClientDC dc(this);
@@ -341,7 +336,6 @@ void CAIproject1Dlg::drawMaze()
 
 void CAIproject1Dlg::OnBnClickedButtonReset()
 {
-	// TODO: 在此添加控件通知处理程序代码
 	agent->clearResult();
 	maze->clearEst();
 	draw();
@@ -351,7 +345,6 @@ void CAIproject1Dlg::OnBnClickedButtonReset()
 
 void CAIproject1Dlg::drawTrap(int row, int col)
 {
-	// TODO: 在此处添加实现代码.
 	CClientDC dc(this);
 	CBrush cBrush;
 	CRect cRect = getRect(make_pair(row, col));
@@ -374,7 +367,6 @@ void CAIproject1Dlg::drawTrap(int row, int col)
 
 void CAIproject1Dlg::drawLucky(int row, int col)
 {
-	// TODO: 在此处添加实现代码.
 	CClientDC dc(this);
 	CBrush cBrush;
 	cBrush.CreateSolidBrush(RGB(255, 204, 0));
@@ -622,7 +614,6 @@ void CAIproject1Dlg::OnBnClickedButtonChange()
 
 void CAIproject1Dlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
 	{
 		auto grid = getGrid(make_pair(point.x, point.y));
@@ -654,7 +645,6 @@ void CAIproject1Dlg::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CAIproject1Dlg::OnMouseMove(UINT nFlags, CPoint point)
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if ((nFlags & MK_LBUTTON || nFlags & MK_RBUTTON)
 		&& point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
 	{
@@ -733,7 +723,6 @@ void CAIproject1Dlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
 
-	// TODO: 在此处添加消息处理程序代码
 	if (m_bar.GetCount() != 0)
 	{
 		m_bar.SetPaneInfo(0, IDS_BAR_STATUS, SBPS_NORMAL, 150);
@@ -758,10 +747,10 @@ void CAIproject1Dlg::OnSize(UINT nType, int cx, int cy)
 		{
 			if (pos == nullptr) break;
 			childSaved = m_listRect.GetNext(pos);//依次获取子窗体的Rect
-			childSaved.left = (LONG)(dlgNow.left + (childSaved.left - dlgSaved.left) * x);//根据比例调整控件上下左右距离对话框的距离
-			childSaved.right = (LONG)(dlgNow.right + (childSaved.right - dlgSaved.right) * x);
-			childSaved.top = (LONG)(dlgNow.top + (childSaved.top - dlgSaved.top) * y);
-			childSaved.bottom = (LONG)(dlgNow.bottom + (childSaved.bottom - dlgSaved.bottom) * y);
+			childSaved.left = (LONG)(dlgNow.left + (1.0 * childSaved.left - dlgSaved.left) * x);//根据比例调整控件上下左右距离对话框的距离
+			childSaved.right = (LONG)(dlgNow.right + (1.0 * childSaved.right - dlgSaved.right) * x);
+			childSaved.top = (LONG)(dlgNow.top + (1.0 * childSaved.top - dlgSaved.top) * y);
+			childSaved.bottom = (LONG)(dlgNow.bottom + (1.0 * childSaved.bottom - dlgSaved.bottom) * y);
 			ScreenToClient(childSaved);
 			pWnd->MoveWindow(childSaved);
 			CRect rect;/*

@@ -23,7 +23,7 @@ double Helper::DISCOUNT = 0.99;
 double Helper::EPSILON = 1;
 double Helper::LEARNING_RATE = 0.9;
 
-MazeElem::MazeElem(MapElem _type, double _reward) : type(_type), reward(_reward), value(0) {}
+MazeElem::MazeElem(MapElem _type, double _reward) : type(_type), reward(_reward), value(0) { prob = 0; }
 
 Maze::Maze(int r, int c) :row(r), col(c)
 {

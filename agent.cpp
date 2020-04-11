@@ -158,7 +158,7 @@ public:
 		return direction;
 	}
 	Direction QLearningDecision(int r, int c) {
-		_m->estPoint(r, c, 10*Helper::V_TRAP);
+		_m->estPoint(r, c, 2*Helper::V_TRAP);
 		double pay[MAX_DIRECTION / 2];
 		pair<int, int> nextpos;
 		double last_value = 0;
@@ -227,8 +227,8 @@ public:
 		else {
 			double rand_d = rand() / (RAND_MAX + 1);
 			double rand_div = 1 / directions.size();
-			for (int i = 0; i < directions.size(); i++) {
-				if (rand_d < (i + 1) * rand_div) {
+			for (auto i = 0; i < directions.size(); i++) {
+				if (rand_d < (i + 1.0) * rand_div) {
 					_m->estPoint(r, c, pay[directions[i] / 2]);
 					return directions[i];
 				}
@@ -277,8 +277,8 @@ public:
 		else {
 			double rand_d = rand() / (RAND_MAX + 1);
 			double rand_div = 1 / directions.size();
-			for (int i = 0; i < directions.size(); i++) {
-				if (rand_d < (i + 1) * rand_div) {
+			for (auto i = 0; i < directions.size(); i++) {
+				if (rand_d < (i + 1.0) * rand_div) {
 					_m->estPoint(r, c, pay[directions[i] / 2]);
 					return directions[i];
 				}

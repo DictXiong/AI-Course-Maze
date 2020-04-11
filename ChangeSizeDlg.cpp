@@ -64,7 +64,6 @@ BOOL ChangeSizeDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// TODO:  在此添加额外的初始化
 	UpdateData(false);
 
 

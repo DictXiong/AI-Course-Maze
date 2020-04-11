@@ -73,7 +73,6 @@ BOOL ArgChangeDlg::OnInitDialog()
 {
     CDialogEx::OnInitDialog();
 
-    // TODO:  在此添加额外的初始化
     UpdateData(false);
 
     return TRUE;  // return TRUE unless you set the focus to a control

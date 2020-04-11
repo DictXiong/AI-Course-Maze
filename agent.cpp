@@ -19,7 +19,7 @@ const std::pair<int, int> DELTA[MAX_DIRECTION] = { std::make_pair(-1,0), std::ma
 	std::make_pair(1,0), std::make_pair(1,-1), std::make_pair(0,-1), std::make_pair(-1,-1) };
 
 
-//��ǰ�� direction ��һ�������
+//当前向 direction 走一格的坐标
 inline std::pair<int, int> getAimPos(int r, int c, Direction direction)
 {
 	return std::make_pair(r + DELTA[direction].first, c + DELTA[direction].second);
@@ -30,14 +30,13 @@ inline std::pair<int, int> getAimPos(std::pair<int, int> pos, Direction directio
 }
 
 typedef MazeElem Successor;
-//algorithm�У�0-MDP��1-QLearning��2-SARSA
+//algorithm中：0-MDP，1-QLearning，2-SARSA
 class Agent {
 private:
 	Maze* _m = nullptr;
 	Direction** decision;
 	Direction(Agent::* iterfunc)(int, int);
 	unsigned _cSeq = 0, _cRev = 0;
-	//ѡ��һ�������, ֱ��/��ǰ��/��ǰ���ĸ���
 public:
 	Agent(Maze *maze, int algo = 0)
 	{
@@ -88,30 +87,30 @@ public:
 		return _m;
 	}
 
-	//����һ��ѡ���ķ���, ��ÿ��ܵĺ�����
+	//对于一个选定的方向, 获得可能的后继情况
 	vector<Successor> getSuccessor(int r, int c, Direction direction)
 	{
 		vector<Successor> ans;
 		Successor tmp;
-		double totalProb = 0;//��һ������
+		double totalProb = 0;//归一化因子
 		pair<int, int> nextpos;
 
-		nextpos = getAimPos(r, c, direction);//ֱ��
+		nextpos = getAimPos(r, c, direction);//直行
 		tmp = _m->getPoint(nextpos);
 		tmp.prob = Helper::PROB_S;
 		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
-		nextpos = getAimPos(r, c, littleLeft(direction));//��ǰ��
+		nextpos = getAimPos(r, c, littleLeft(direction));//左前方
 		tmp = _m->getPoint(nextpos);
 		tmp.prob = Helper::PROB_L;
 		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
-		nextpos = getAimPos(r, c, littleRight(direction));//��ǰ��
+		nextpos = getAimPos(r, c, littleRight(direction));//右前方
 		tmp = _m->getPoint(nextpos);
 		tmp.prob = Helper::PROB_R;
 		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
-		for (auto& i : ans)//��һ��
+		for (auto& i : ans)//归一化
 		{
 			i.prob /= totalProb;
 		}
@@ -139,7 +138,7 @@ public:
 		double estpay = -INF;
 		//bool discount_flag = false;
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
-			//�˴�ʹ�������پ�����Ϊ��������������ƶ�������������ر�����һ���ۿ�
+			//此处使用曼哈顿距离作为启发函数，如果移动后更靠近起点则回报会有一定折扣
 			if ((Direction(2 * i) == Direction::UP) || (Direction(2 * i) == Direction::LEFT)) {
 				pay[i] = pay[i] * Helper::DISCOUNT;
 				//discount_flag = true;
@@ -159,7 +158,7 @@ public:
 		return direction;
 	}
 	Direction QLearningDecision(int r, int c) {
-		_m->estPoint(r, c, 10*V_TRAP);
+		_m->estPoint(r, c, 10*Helper::V_TRAP);
 		double pay[MAX_DIRECTION / 2];
 		pair<int, int> nextpos;
 		double last_value = 0;
@@ -170,7 +169,7 @@ public:
 				pay[i / 2] = -INF;
 				continue;
 			}
-			//Ϊ��ú�̵�����Qֵ�����ڿ��ܵ���ĵ���ʹ��MDP���¹���ֵ��֮��ֱ�ӽ�����ֵ��Ϊmax Q(s')�������
+			//为求得后继点的最大Q值，对于可能到达的点先使用MDP更新估计值，之后直接将估计值作为max Q(s')纳入计算
 			nextpos = getAimPos(r, c, Direction(i));
 			if (_m->lawful(nextpos)) {
 				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
@@ -220,7 +219,7 @@ public:
 				}
 			}
 		}
-		//����epsilon-greedy
+		//采用epsilon-greedy
 		if ((rand() / RAND_MAX) < Helper::EPSILON) {
 			_m->estPoint(r, c, estpay);
 			return direction;
@@ -381,7 +380,7 @@ public:
 				whole[i][j] = 0;
 				auto tmp = _m->getPoint(i, j);
 				if (tmp.type == WALL) whole[i][j] = 'H';
-				else if (tmp.type == TRAP) whole[i][j] == '#';
+				else if (tmp.type == TRAP) whole[i][j] = '#';
 			}
 		}
 		whole[row - 1][col - 1] = '$';

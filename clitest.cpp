@@ -1,5 +1,8 @@
 #include<iostream>
 #include<cstdio>
+#include<ctime>
+#include "maze.h"
+#include "maze.cpp"
 #include "agent.cpp"
 
 using namespace std;

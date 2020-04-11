@@ -19,7 +19,7 @@ const std::pair<int, int> DELTA[MAX_DIRECTION] = { std::make_pair(-1,0), std::ma
 	std::make_pair(1,0), std::make_pair(1,-1), std::make_pair(0,-1), std::make_pair(-1,-1) };
 
 
-//µ±Ç°Ïò direction ×ßÒ»¸ñµÄ×ø±ê
+//ï¿½ï¿½Ç°ï¿½ï¿½ direction ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 inline std::pair<int, int> getAimPos(int r, int c, Direction direction)
 {
 	return std::make_pair(r + DELTA[direction].first, c + DELTA[direction].second);
@@ -30,14 +30,14 @@ inline std::pair<int, int> getAimPos(std::pair<int, int> pos, Direction directio
 }
 
 typedef MazeElem Successor;
-//algorithmÖÐ£º0-MDP£¬1-QLearning£¬2-SARSA
+//algorithmï¿½Ð£ï¿½0-MDPï¿½ï¿½1-QLearningï¿½ï¿½2-SARSA
 class Agent {
 private:
 	Maze* _m = nullptr;
 	Direction** decision;
 	Direction(Agent::* iterfunc)(int, int);
 	unsigned _cSeq = 0, _cRev = 0;
-	//Ñ¡ÔñÒ»¸ö·½Ïòºó, Ö±×ß/×óÇ°·½/ÓÒÇ°·½µÄ¸ÅÂÊ
+	//Ñ¡ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, Ö±ï¿½ï¿½/ï¿½ï¿½Ç°ï¿½ï¿½/ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½
 public:
 	Agent(Maze *maze, int algo = 0)
 	{
@@ -88,30 +88,30 @@ public:
 		return _m;
 	}
 
-	//¶ÔÓÚÒ»¸öÑ¡¶¨µÄ·½Ïò, »ñµÃ¿ÉÄÜµÄºó¼ÌÇé¿ö
+	//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½, ï¿½ï¿½Ã¿ï¿½ï¿½ÜµÄºï¿½ï¿½ï¿½ï¿½ï¿½
 	vector<Successor> getSuccessor(int r, int c, Direction direction)
 	{
 		vector<Successor> ans;
 		Successor tmp;
-		double totalProb = 0;//¹éÒ»»¯Òò×Ó
+		double totalProb = 0;//ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		pair<int, int> nextpos;
 
-		nextpos = getAimPos(r, c, direction);//Ö±ÐÐ
+		nextpos = getAimPos(r, c, direction);//Ö±ï¿½ï¿½
 		tmp = _m->getPoint(nextpos);
 		tmp.prob = Helper::PROB_S;
 		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
-		nextpos = getAimPos(r, c, littleLeft(direction));//×óÇ°·½
+		nextpos = getAimPos(r, c, littleLeft(direction));//ï¿½ï¿½Ç°ï¿½ï¿½
 		tmp = _m->getPoint(nextpos);
 		tmp.prob = Helper::PROB_L;
 		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
-		nextpos = getAimPos(r, c, littleRight(direction));//ÓÒÇ°·½
+		nextpos = getAimPos(r, c, littleRight(direction));//ï¿½ï¿½Ç°ï¿½ï¿½
 		tmp = _m->getPoint(nextpos);
 		tmp.prob = Helper::PROB_R;
 		if (Helper::walkable(tmp.type)) ans.push_back(tmp), totalProb += tmp.prob;
 
-		for (auto& i : ans)//¹éÒ»»¯
+		for (auto& i : ans)//ï¿½ï¿½Ò»ï¿½ï¿½
 		{
 			i.prob /= totalProb;
 		}
@@ -139,7 +139,7 @@ public:
 		double estpay = -INF;
 		//bool discount_flag = false;
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
-			//´Ë´¦Ê¹ÓÃÂü¹þ¶Ù¾àÀë×÷ÎªÆô·¢º¯Êý£¬Èç¹ûÒÆ¶¯ºó¸ü¿¿½üÆðµãÔò»Ø±¨»áÓÐÒ»¶¨ÕÛ¿Û
+			//ï¿½Ë´ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¾ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø±ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Û¿ï¿½
 			if ((Direction(2 * i) == Direction::UP) || (Direction(2 * i) == Direction::LEFT)) {
 				pay[i] = pay[i] * Helper::DISCOUNT;
 				//discount_flag = true;
@@ -159,7 +159,7 @@ public:
 		return direction;
 	}
 	Direction QLearningDecision(int r, int c) {
-		//maze.estPoint(r, c, 0);
+		_m->estPoint(r, c, 10*V_TRAP);
 		double pay[MAX_DIRECTION / 2];
 		pair<int, int> nextpos;
 		double last_value = 0;
@@ -170,7 +170,7 @@ public:
 				pay[i / 2] = -INF;
 				continue;
 			}
-			//ÎªÇóµÃºó¼ÌµãµÄ×î´óQÖµ£¬¶ÔÓÚ¿ÉÄÜµ½´ïµÄµãÏÈÊ¹ÓÃMDP¸üÐÂ¹À¼ÆÖµ£¬Ö®ºóÖ±½Ó½«¹À¼ÆÖµ×÷Îªmax Q(s')ÄÉÈë¼ÆËã
+			//Îªï¿½ï¿½Ãºï¿½Ìµï¿½ï¿½ï¿½ï¿½ï¿½QÖµï¿½ï¿½ï¿½ï¿½ï¿½Ú¿ï¿½ï¿½Üµï¿½ï¿½ï¿½Äµï¿½ï¿½ï¿½Ê¹ï¿½ï¿½MDPï¿½ï¿½ï¿½Â¹ï¿½ï¿½ï¿½Öµï¿½ï¿½Ö®ï¿½ï¿½Ö±ï¿½Ó½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Îªmax Q(s')ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			nextpos = getAimPos(r, c, Direction(i));
 			if (_m->lawful(nextpos)) {
 				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
@@ -220,7 +220,7 @@ public:
 				}
 			}
 		}
-		//²ÉÓÃepsilon-greedy
+		//ï¿½ï¿½ï¿½ï¿½epsilon-greedy
 		if ((rand() / RAND_MAX) < Helper::EPSILON) {
 			_m->estPoint(r, c, estpay);
 			return direction;
@@ -238,6 +238,7 @@ public:
 	}
 	Direction SARSADecision(int r, int c) {
 		double pay[MAX_DIRECTION / 2];
+		pair<int, int> nextpos;
 		for (Direction i = UP; i < MAX_DIRECTION; i = Direction(i + 2))
 		{
 			if (!_m->lawful(getAimPos(r, c, i)))
@@ -256,7 +257,7 @@ public:
 		vector<Direction> directions;
 		pair<int, int>cur_pos = make_pair(r, c);
 		for (int i = 0; i != MAX_DIRECTION / 2; i++) {
-			auto nextpos = getAimPos(cur_pos, Direction(2 * i));
+			nextpos = getAimPos(cur_pos, Direction(2 * i));
 			if (_m->lawful(nextpos)) {
 				nextpos = getAimPos(nextpos, decision[nextpos.first][nextpos.second]);
 				if (nextpos != cur_pos) {
@@ -380,7 +381,7 @@ public:
 				whole[i][j] = 0;
 				auto tmp = _m->getPoint(i, j);
 				if (tmp.type == WALL) whole[i][j] = 'H';
-				else if (tmp.type == TRAP) whole[i][j] = '#';
+				else if (tmp.type == TRAP) whole[i][j] == '#';
 			}
 		}
 		whole[row - 1][col - 1] = '$';

@@ -39,9 +39,9 @@ private:
 	Direction(Agent::* iterfunc)(int, int);
 	unsigned _cSeq = 0, _cRev = 0;
 public:
-	Agent(Maze *maze, int algo = 0)
+	Agent(Maze* maze, int algo = 0)
 	{
-		setMaze(maze); 
+		setMaze(maze);
 		setAlgo(algo);
 	}
 	~Agent() {
@@ -159,8 +159,8 @@ public:
 		return direction;
 	}
 	Direction QLearningDecision(int r, int c) {
-		double raw_val=_m->getPoint(r,c).value;
-		_m->estPoint(r, c, 2*Helper::V_TRAP);
+		//double raw_val=_m->getPoint(r,c).value;
+		//_m->estPoint(r, c, 2*Helper::V_TRAP);
 		double pay[MAX_DIRECTION / 2];
 		pair<int, int> nextpos;
 		double last_value = 0;
@@ -202,20 +202,20 @@ public:
 //			return direction;
 //		}
 //		else {
-		if ((rand() / (RAND_MAX+0.00001)) > Helper::EPSILON) {
-			if(directions.size()>0){
+		if ((rand() / (RAND_MAX + 0.00001)) > Helper::EPSILON) {
+			if (directions.size() > 0) {
 				double rand_d = rand() / (RAND_MAX + 1.00001);
 				double rand_div = 1 / directions.size();
 				for (int i = 0; i < directions.size(); i++) {
 					if (rand_d < (i + 1) * rand_div) {
-	//					_m->estPoint(r, c, pay[directions[i] / 2]);
+						//					_m->estPoint(r, c, pay[directions[i] / 2]);
 						direction = directions[i];
 						break;
 					}
 				}
 			}
 		}
-		_m->estPoint(r, c, 0);
+		//_m->estPoint(r, c, 0);
 		nextpos = getAimPos(r, c, direction);
 		if (_m->lawful(nextpos)) {
 			last_value = _m->getPoint(nextpos.first, nextpos.second).value;
@@ -241,7 +241,7 @@ public:
 			}
 		}
 		auto succ = getSuccessor(r, c, direction);
-		estpay = (1 - Helper::LEARNING_RATE) * raw_val;
+		estpay = (1 - Helper::LEARNING_RATE) * _m->getPoint(r, c).value;
 		for (auto j : succ) {
 			estpay = estpay + Helper::LEARNING_RATE * j.prob * (j.reward + Helper::DISCOUNT * j.value);
 		}
@@ -283,7 +283,7 @@ public:
 				}
 			}
 		}
-		if ((rand() / RAND_MAX) < Helper::EPSILON || (directions.size()==0)) {
+		if ((rand() / RAND_MAX) < Helper::EPSILON || (directions.size() == 0)) {
 			_m->estPoint(r, c, estpay);
 			return direction;
 		}
@@ -298,21 +298,21 @@ public:
 			}
 		}
 	}
-	void iteration(unsigned times, bool reverse_iter = false) 
+	void iteration(unsigned times, bool reverse_iter = false)
 	{
 		int row = _m->getRow();
 		int col = _m->getCol();
 		int r = 0;
 		int c = 0;
 		for (unsigned i = 0; i != times; i++)
-			if (reverse_iter) 
+			if (reverse_iter)
 			{
 				_cRev++;
-				for (int s = row + col - 2; s >= 0; s--) 
+				for (int s = row + col - 2; s >= 0; s--)
 				{
 					r = 0;
 					c = s - r;
-					while (r < row) 
+					while (r < row)
 					{
 						if (c < col) {
 							if (!Helper::isFixedPoint(_m->getPoint(r, c).type)) {
@@ -325,10 +325,10 @@ public:
 					}
 				}
 			}
-			else 
+			else
 			{
 				_cSeq++;
-				for (int s = 0; s < row + col - 1; s++) 
+				for (int s = 0; s < row + col - 1; s++)
 				{
 					r = 0;
 					c = s - r;
@@ -350,7 +350,7 @@ public:
 	{
 		int row = _m->getRow();
 		int col = _m->getCol();
-		bool** visited=new bool*[row];
+		bool** visited = new bool* [row];
 		for (int i = 0; i != row; i++)
 		{
 			visited[i] = new bool[col];
@@ -379,9 +379,9 @@ public:
 		return ans;*/
 		stack< pair<pair<int, int>, Direction> > ans;
 		ans.push(make_pair(make_pair(0, 0), decision[0][0]));
-		int r,c;
+		int r, c;
 
-		while ((ans.size()>0) )
+		while ((ans.size() > 0))
 		{
 			auto now = ans.top();
 			if (now.first == make_pair(row - 1, col - 1))
@@ -407,28 +407,24 @@ public:
 				toGo = direction;
 				prob = Helper::PROB_S;
 			}
-			else
+
+			nextpos = getAimPos(r, c, littleLeft(direction));//左前方
+			tmp = _m->getPoint(nextpos);
+			if (Helper::walkable(tmp.type) && !visited[nextpos.first][nextpos.second] && Helper::PROB_L > prob)
 			{
-				nextpos = getAimPos(r, c, littleLeft(direction));//左前方
-				tmp = _m->getPoint(nextpos);
-				if (Helper::walkable(tmp.type) && !visited[nextpos.first][nextpos.second] && Helper::PROB_L > prob)
-				{
-					toGo = littleLeft(direction);
-					prob = Helper::PROB_L;
-				}
-				else
-				{
-					nextpos = getAimPos(r, c, littleRight(direction));//右前方
-					tmp = _m->getPoint(nextpos);
-					if (Helper::walkable(tmp.type) && !visited[nextpos.first][nextpos.second] && Helper::PROB_S > prob)
-					{
-						toGo = littleRight(direction);
-						prob = Helper::PROB_R;
-					}
-				}
+				toGo = littleLeft(direction);
+				prob = Helper::PROB_L;
 			}
 
-			if (toGo==Direction::null)
+			nextpos = getAimPos(r, c, littleRight(direction));//右前方
+			tmp = _m->getPoint(nextpos);
+			if (Helper::walkable(tmp.type) && !visited[nextpos.first][nextpos.second] && Helper::PROB_R > prob)
+			{
+				toGo = littleRight(direction);
+				prob = Helper::PROB_R;
+			}
+
+			if (toGo == Direction::null)
 			{
 				ans.pop();
 				continue;
@@ -437,7 +433,18 @@ public:
 			auto next = getAimPos(now.first, toGo);
 			ans.push(make_pair(next, decision[next.first][next.second]));
 		}
+
 		return ans;
+	}
+
+	Direction getDecision(int r, int c)
+	{
+		return decision[r][c];
+	}
+
+	Direction getDecision(pair<int,int> p)
+	{
+		return getDecision(p.first, p.second);
 	}
 
 	void clearResult()
@@ -465,27 +472,22 @@ public:
 			}
 		}
 		whole[row - 1][col - 1] = '$';
-		int x = 0;
-		int y = 0;
-		int i = 0;
-		while (_m->lawful(x,y) && ((x != row-1 ) || (y != col-1))) {
-			if (decision[x][y] == Direction::LEFT) {
-				whole[x][y--] = '-';
-			}
-			else if (decision[x][y] == Direction::RIGHT) {
-				whole[x][y++] = '-';
-			}
-			else if (decision[x][y] == Direction::UP) {
-				whole[x--][y] = '|';
-			}
-			else if (decision[x][y] == Direction::DOWN) {
-				whole[x++][y] = '|';
-			}
-			i++;
-			if (i > row * col) {
-				break;
+		
+
+		auto result = getResult();
+		while (!result.empty())
+		{
+			auto i = result.top();
+			result.pop();
+			switch (i.second)
+			{
+			case UP: 
+			case DOWN: whole[i.first.first][i.first.second] = '|'; break;
+			case RIGHT: 
+			case LEFT: whole[i.first.first][i.first.second] = '-'; break;
 			}
 		}
+
 		for (int i = 0; i < row; i++) {
 			for (int j = 0; j < col; j++) {
 				printf("%c    ", whole[i][j]);

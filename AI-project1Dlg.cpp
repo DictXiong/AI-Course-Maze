@@ -419,6 +419,17 @@ void CAIproject1Dlg::drawResult()
 	}
 
 	auto result = agent->getResult();
+	Direction d;
+	if (result.empty())
+	{
+		for (int i = 0; i != row; i++)
+			for (int j = 0; j != col; j++)
+			{
+				d = agent->getDecision(i, j);
+				if (d != Direction::null) drawDirection(i, j, d);
+			}
+	}
+
 	while (!result.empty())
 	{
 		auto i = result.top();
@@ -521,7 +532,23 @@ void CAIproject1Dlg::drawCell(int r, int c)
 void CAIproject1Dlg::OnBnClickedButtonAutorun()
 {
 	setStatus(RUNNING);
-	agent->iteration(15,true);
+	int maxAuto = maze->getRow() * maze->getCol() / 2;
+	int i;
+	for (i = 0; i != maxAuto; i++)
+	{
+		agent->iteration(1, false);
+		if (!agent->getResult().empty())
+		{
+			break;
+		}
+	}
+	if (i == maxAuto)
+	{
+		CString s;
+		s.Format(L"进行了%d次正向迭代, 但未能找到结果.", maxAuto);
+		AfxMessageBox(s);
+	}
+
 	showResult = true;
 	draw();
 	setStatus(RUNNED);
@@ -619,6 +646,16 @@ void CAIproject1Dlg::OnLButtonDown(UINT nFlags, CPoint point)
 	if (point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
 	{
 		auto grid = getGrid(make_pair(point.x, point.y));
+		if (showResult)
+		{
+			auto direction = agent->getDecision(grid);
+			if (direction != null)
+			{
+				drawDirection(grid.first, grid.second, direction);
+			}
+			return;
+		}
+
 		if (grid.first == row - 1 && grid.second == col - 1)
 		{
 			AfxMessageBox(L"不可以改变终点的类型!"); return;
@@ -651,6 +688,17 @@ void CAIproject1Dlg::OnMouseMove(UINT nFlags, CPoint point)
 		&& point.x > orgX && point.y > orgY && point.x < orgX + length && point.y < orgY + width)
 	{
 		auto grid = getGrid(make_pair(point.x, point.y));
+		if (showResult && nFlags & MK_LBUTTON)
+		{
+			auto direction = agent->getDecision(grid);
+			if (direction != null)
+			{
+				drawDirection(grid.first, grid.second, direction);
+			}
+			return;
+		}
+
+
 		if (!(grid.first == 0 && grid.second == 0) && !(grid.first == row - 1 && grid.second == col - 1))
 		{
 			maze->setCell(grid.first, grid.second, typeToSet);

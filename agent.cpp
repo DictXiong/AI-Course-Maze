@@ -1,6 +1,7 @@
-//#include "pch.h"
+﻿//#include "pch.h"
 #pragma once
 #include "maze.h"
+#include<stack>
 
 enum Direction
 {
@@ -158,6 +159,7 @@ public:
 		return direction;
 	}
 	Direction QLearningDecision(int r, int c) {
+		double raw_val=_m->getPoint(r,c).value;
 		_m->estPoint(r, c, 2*Helper::V_TRAP);
 		double pay[MAX_DIRECTION / 2];
 		pair<int, int> nextpos;
@@ -168,31 +170,6 @@ public:
 			{
 				pay[i / 2] = -INF;
 				continue;
-			}
-			//为求得后继点的最大Q值，对于可能到达的点先使用MDP更新估计值，之后直接将估计值作为max Q(s')纳入计算
-			nextpos = getAimPos(r, c, Direction(i));
-			if (_m->lawful(nextpos)) {
-				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
-				MDPDecision(nextpos.first, nextpos.second);
-				if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
-					_m->estPoint(nextpos.first, nextpos.second, last_value);
-				}
-			}
-			nextpos = getAimPos(r, c, littleLeft(Direction(i)));
-			if (_m->lawful(nextpos)) {
-				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
-				MDPDecision(nextpos.first, nextpos.second);
-				if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
-					_m->estPoint(nextpos.first, nextpos.second, last_value);
-				}
-			}
-			nextpos = getAimPos(r, c, littleRight(Direction(i)));
-			if (_m->lawful(nextpos)) {
-				last_value = _m->getPoint(nextpos.first, nextpos.second).value;
-				MDPDecision(nextpos.first, nextpos.second);
-				if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
-					_m->estPoint(nextpos.first, nextpos.second, last_value);
-				}
 			}
 			auto succ = getSuccessor(r, c, Direction(i));
 			pay[i / 2] = (1 - Helper::LEARNING_RATE) * _m->getPoint(r, c).value;
@@ -220,20 +197,56 @@ public:
 			}
 		}
 		//采用epsilon-greedy
-		if ((rand() / RAND_MAX) < Helper::EPSILON) {
-			_m->estPoint(r, c, estpay);
-			return direction;
-		}
-		else {
-			double rand_d = rand() / (RAND_MAX + 1);
-			double rand_div = 1 / directions.size();
-			for (auto i = 0; i < directions.size(); i++) {
-				if (rand_d < (i + 1.0) * rand_div) {
-					_m->estPoint(r, c, pay[directions[i] / 2]);
-					return directions[i];
+		//		if ((rand() / RAND_MAX) < EPSILON) {
+//			_m->estPoint(r, c, estpay);
+//			return direction;
+//		}
+//		else {
+		if ((rand() / (RAND_MAX+0.00001)) > Helper::EPSILON) {
+			if(directions.size()>0){
+				double rand_d = rand() / (RAND_MAX + 1.00001);
+				double rand_div = 1 / directions.size();
+				for (int i = 0; i < directions.size(); i++) {
+					if (rand_d < (i + 1) * rand_div) {
+	//					_m->estPoint(r, c, pay[directions[i] / 2]);
+						direction = directions[i];
+						break;
+					}
 				}
 			}
 		}
+		_m->estPoint(r, c, 0);
+		nextpos = getAimPos(r, c, direction);
+		if (_m->lawful(nextpos)) {
+			last_value = _m->getPoint(nextpos.first, nextpos.second).value;
+			MDPDecision(nextpos.first, nextpos.second);
+			if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
+				_m->estPoint(nextpos.first, nextpos.second, last_value);
+			}
+		}
+		nextpos = getAimPos(r, c, littleLeft(direction));
+		if (_m->lawful(nextpos)) {
+			last_value = _m->getPoint(nextpos.first, nextpos.second).value;
+			MDPDecision(nextpos.first, nextpos.second);
+			if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
+				_m->estPoint(nextpos.first, nextpos.second, last_value);
+			}
+		}
+		nextpos = getAimPos(r, c, littleRight(direction));
+		if (_m->lawful(nextpos)) {
+			last_value = _m->getPoint(nextpos.first, nextpos.second).value;
+			MDPDecision(nextpos.first, nextpos.second);
+			if (_m->getPoint(nextpos.first, nextpos.second).value < last_value) {
+				_m->estPoint(nextpos.first, nextpos.second, last_value);
+			}
+		}
+		auto succ = getSuccessor(r, c, direction);
+		estpay = (1 - Helper::LEARNING_RATE) * raw_val;
+		for (auto j : succ) {
+			estpay = estpay + Helper::LEARNING_RATE * j.prob * (j.reward + Helper::DISCOUNT * j.value);
+		}
+		_m->estPoint(r, c, estpay);
+		return direction;
 	}
 	Direction SARSADecision(int r, int c) {
 		double pay[MAX_DIRECTION / 2];
@@ -270,7 +283,7 @@ public:
 				}
 			}
 		}
-		if ((rand() / RAND_MAX) < Helper::EPSILON) {
+		if ((rand() / RAND_MAX) < Helper::EPSILON || (directions.size()==0)) {
 			_m->estPoint(r, c, estpay);
 			return direction;
 		}
@@ -333,10 +346,17 @@ public:
 				}
 			}
 	}
-	vector< pair<pair<int, int>, Direction> >   getResult()
+	stack< pair<pair<int, int>, Direction> >   getResult()
 	{
 		int row = _m->getRow();
 		int col = _m->getCol();
+		bool** visited=new bool*[row];
+		for (int i = 0; i != row; i++)
+		{
+			visited[i] = new bool[col];
+			for (int j = 0; j != col; j++) visited[i][j] = false;
+		}
+		/*
 		vector< pair<pair<int, int>, Direction> > ans;
 		int i = 0, x = 0, y = 0;
 		if (decision[x][y] == null) return ans;
@@ -349,12 +369,73 @@ public:
 			case RIGHT: y++; break;
 			case UP: x--; break;
 			case DOWN: x++; break;
-			case null: throw(-1);
+			//case null: throw(-1);
 			}
 			i++;
 			if (i > row * col) {
 				break;
 			}
+		}
+		return ans;*/
+		stack< pair<pair<int, int>, Direction> > ans;
+		ans.push(make_pair(make_pair(0, 0), decision[0][0]));
+		int r,c;
+
+		while ((ans.size()>0) )
+		{
+			auto now = ans.top();
+			if (now.first == make_pair(row - 1, col - 1))
+			{
+				ans.pop();
+				break;
+			}
+			r = now.first.first;
+			c = now.first.second;
+			visited[r][c] = true;
+			auto direction = decision[r][c];
+			if (direction == Direction::null)
+			{
+				ans.pop();
+				continue;
+			}
+			Direction toGo = Direction::null; double prob = 0;
+
+			auto nextpos = getAimPos(r, c, direction);//直行
+			auto tmp = _m->getPoint(nextpos);
+			if (Helper::walkable(tmp.type) && !visited[nextpos.first][nextpos.second] && Helper::PROB_S > prob)
+			{
+				toGo = direction;
+				prob = Helper::PROB_S;
+			}
+			else
+			{
+				nextpos = getAimPos(r, c, littleLeft(direction));//左前方
+				tmp = _m->getPoint(nextpos);
+				if (Helper::walkable(tmp.type) && !visited[nextpos.first][nextpos.second] && Helper::PROB_L > prob)
+				{
+					toGo = littleLeft(direction);
+					prob = Helper::PROB_L;
+				}
+				else
+				{
+					nextpos = getAimPos(r, c, littleRight(direction));//右前方
+					tmp = _m->getPoint(nextpos);
+					if (Helper::walkable(tmp.type) && !visited[nextpos.first][nextpos.second] && Helper::PROB_S > prob)
+					{
+						toGo = littleRight(direction);
+						prob = Helper::PROB_R;
+					}
+				}
+			}
+
+			if (toGo==Direction::null)
+			{
+				ans.pop();
+				continue;
+			}
+
+			auto next = getAimPos(now.first, toGo);
+			ans.push(make_pair(next, decision[next.first][next.second]));
 		}
 		return ans;
 	}

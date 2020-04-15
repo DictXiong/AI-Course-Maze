@@ -419,8 +419,10 @@ void CAIproject1Dlg::drawResult()
 	}
 
 	auto result = agent->getResult();
-	for (auto i : result)
+	while (!result.empty())
 	{
+		auto i = result.top();
+		result.pop();
 		drawDirection(i.first.first, i.first.second, i.second);
 	}
 }

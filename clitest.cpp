@@ -37,7 +37,7 @@ int main()
 	maze.setLucky(row-1, col-1);
 	//maze.print();
 	Agent Robot(&maze,1);
-	Robot.iteration(times,true);
+	Robot.iteration(times,false);
 	Robot.printRoute();
 //	for (int i = 1; i <= times; i++) {
 //		Robot.iteration(true);

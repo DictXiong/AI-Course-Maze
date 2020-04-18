@@ -94,7 +94,6 @@ make_pair(14,8), make_pair(14,9), make_pair(14,10), make_pair(14,11), make_pair(
 		maze->setTrap(11, 11);
 		maze->setTrap(12, 15);
 		maze->setLucky(row-1, col-1);
-		//maze->setLucky(row-1, col-1);
 }
 
 
@@ -443,7 +442,7 @@ void CAIproject1Dlg::OnBnClickedButtonDefault()
 {
 	Helper::V_TRAP = -1;
 	Helper::V_DEST = 1;
-	Helper::V_LUCKY = 0.1;
+	Helper::V_LUCKY = 0.5;
 	Helper::PROB_S = 0.6;
 	Helper::PROB_L = 0.2;
 	Helper::PROB_R = 0.2;

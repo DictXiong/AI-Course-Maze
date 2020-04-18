@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 //#include "pch.h"
 #include<cstdio>
@@ -11,7 +11,7 @@ const double EPS = 1e-6;
 
 enum MapElem
 {
-	UNDEF, WALL, ROAD, TRAP, LUCKY //ÆäÖĞ, WALL, TRAP ÊÇ¹Ì¶¨µã, value Öµ²»µÃ¸Ä±ä. 
+	UNDEF, WALL, ROAD, TRAP, LUCKY //å…¶ä¸­, WALL, TRAP æ˜¯å›ºå®šç‚¹, value å€¼ä¸å¾—æ”¹å˜. 
 };
 
 class Helper
@@ -38,7 +38,8 @@ public:
 	MapElem type;
 	double value, reward;
 	double prob; //special usage
-	MazeElem(MapElem _type = ROAD, double _reward = 0);
+	MazeElem(MapElem _type = ROAD, double _reward = 0, double _value = 0);
+	void set(MapElem _type = ROAD, double _reward = 0, double _value = 0);
 };
 
 class Maze {
@@ -50,20 +51,20 @@ public:
 	Maze(int r, int c);
 	~Maze();
 
-	//ÓÃÓÚÇå¿ÕÔ¤²âÖµ
+	//ç”¨äºæ¸…ç©ºé¢„æµ‹å€¼
 	void clearEst();
 
-	//ÓÃÓÚÉèÖÃÃÔ¹¬µãÎªÌØÊâµã
+	//ç”¨äºè®¾ç½®è¿·å®«ç‚¹ä¸ºç‰¹æ®Šç‚¹
 	void setCell(int r, int c, MapElem m);
 	void setWall(int r, int c);
 	void setTrap(int r, int c);
 	void setLucky(int r, int c);
 	void setRoad(int r, int c);
 
-	//ÓÃÓÚÔÚµü´ú¹ı³ÌÖĞ¸üĞÂÔ¤ÆÚÖµ
+	//ç”¨äºåœ¨è¿­ä»£è¿‡ç¨‹ä¸­æ›´æ–°é¢„æœŸå€¼
 	void estPoint(int r, int c, double estpay);
 
-	//¼ì²éµãÊÇ·ñ¿É×ß
+	//æ£€æŸ¥ç‚¹æ˜¯å¦å¯èµ°
 	bool lawful(int r, int c);
 	bool lawful(pair<int, int> pos);
 	MazeElem getPoint(int r, int c);

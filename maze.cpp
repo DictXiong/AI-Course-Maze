@@ -1,21 +1,22 @@
-#pragma once
+ï»¿#pragma once
 
 //#include "pch.h"
 #include "maze.h"
+#define min(a,b) (a<b? a:b)
 using namespace std;
 
 
 bool Helper::isFixedPoint(MapElem m)
 {
-	return m == WALL || m == TRAP || m == LUCKY || m == UNDEF;
+	return m == MapElem::WALL || m == MapElem::TRAP || m == MapElem::UNDEF;
 }
 bool Helper::walkable(MapElem m)
 {
-	return m != UNDEF && m != WALL;
+	return m != MapElem::UNDEF && m != MapElem::WALL;
 }
 double Helper::V_TRAP = -1;
 double Helper::V_DEST = 1;
-double Helper::V_LUCKY = 0.1;
+double Helper::V_LUCKY = 0.5;
 double Helper::PROB_S = 0.6;
 double Helper::PROB_L = 0.2;
 double Helper::PROB_R = 0.2;
@@ -23,7 +24,12 @@ double Helper::DISCOUNT = 0.99;
 double Helper::EPSILON = 1;
 double Helper::LEARNING_RATE = 0.9;
 
-MazeElem::MazeElem(MapElem _type, double _reward) : type(_type), reward(_reward), value(0) { prob = 0; }
+MazeElem::MazeElem(MapElem _type, double _reward, double _value) : type(_type), reward(_reward), value(_value) { prob = 0; }
+
+void MazeElem::set(MapElem _type, double _reward, double _value)
+{
+	type = _type; reward = _reward; value = _value;
+}
 
 Maze::Maze(int r, int c) :row(r), col(c)
 {
@@ -44,16 +50,16 @@ Maze::~Maze()
 	}
 }
 
-//ÓÃÓÚÇå¿ÕÔ¤²âÖµ
+//ç”¨äºŽæ¸…ç©ºé¢„æµ‹å€¼
 void Maze::clearEst()
 {
 	for (int i = 0; i != row; i++)
 		for (int j = 0; j != col; j++)
-			//if (!isFixedPoint(_d[i][j].type))
-			_d[i][j].value = 0;
+			if (_d[i][j].type != MapElem::LUCKY || (i == row-1 && j == col-1)) _d[i][j].value = 0;
+			else _d[i][j].value = Helper::V_LUCKY;
 }
 
-//ÓÃÓÚÉèÖÃÃÔ¹¬µãÎªÌØÊâµã
+//ç”¨äºŽè®¾ç½®è¿·å®«ç‚¹ä¸ºç‰¹æ®Šç‚¹
 	
 void Maze::setCell(int r, int c, MapElem m)
 {
@@ -69,33 +75,34 @@ void Maze::setCell(int r, int c, MapElem m)
 
 void Maze::setWall(int r, int c)
 {
-	_d[r][c] = MazeElem(WALL);
+	_d[r][c].set(WALL);
 }
 
 void Maze::setTrap(int r, int c)
 {
-	_d[r][c] = MazeElem(TRAP, Helper::V_TRAP);
+	_d[r][c].set(TRAP, Helper::V_TRAP);
 }
 
 void Maze::setLucky(int r, int c)
 {
-	if (r == row - 1 && c == col - 1) _d[r][c] = MazeElem(LUCKY, Helper::V_DEST);
-	else _d[r][c] = MazeElem(LUCKY, Helper::V_LUCKY);
+	if (r == row - 1 && c == col - 1) _d[r][c].set(LUCKY, Helper::V_DEST);
+	else _d[r][c].set(LUCKY, 0, Helper::V_LUCKY);
 }
 
 void Maze::setRoad(int r, int c)
 {
-	_d[r][c] = MazeElem(ROAD);
+	_d[r][c].set(ROAD);
 }
 
-//ÓÃÓÚÔÚµü´ú¹ý³ÌÖÐ¸üÐÂÔ¤ÆÚÖµ
+//ç”¨äºŽåœ¨è¿­ä»£è¿‡ç¨‹ä¸­æ›´æ–°é¢„æœŸå€¼
 void Maze::estPoint(int r, int c, double estpay)
 {
-	if (!Helper::isFixedPoint(_d[r][c].type)) {
-		_d[r][c].value = estpay;
+	if (!Helper::isFixedPoint(_d[r][c].type)) 
+	{
+		_d[r][c].value = min(1-_d[r][c].reward, estpay);
 	}
 }
-//¼ì²éµãÊÇ·ñ¿É×ß
+//æ£€æŸ¥ç‚¹æ˜¯å¦å¯èµ°
 bool Maze::lawful(int r, int c)
 {
 	return (((r >= 0) && (r < row) && (c >= 0) && (c < col)) && (Helper::walkable(_d[r][c].type)));

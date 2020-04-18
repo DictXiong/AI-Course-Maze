@@ -1,4 +1,4 @@
-#include<iostream>
+﻿#include<iostream>
 #include<cstdio>
 #include<ctime>
 #include "maze.h"

@@ -2,7 +2,9 @@
 
 //#include "pch.h"
 #include "maze.h"
+#ifdef _MSC_VER 
 #define min(a,b) (a<b? a:b)
+#endif
 using namespace std;
 
 

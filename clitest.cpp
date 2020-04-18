@@ -38,6 +38,7 @@ int main()
 	//maze.print();
 	Agent Robot(&maze,1);
 	Robot.iteration(times,false);
+	maze.print();
 	Robot.printRoute();
 //	for (int i = 1; i <= times; i++) {
 //		Robot.iteration(true);
